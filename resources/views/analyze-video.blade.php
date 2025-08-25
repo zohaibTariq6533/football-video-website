@@ -16,46 +16,100 @@
     <!-- Styles / Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .main-body {
+            font-family: 'Instrument Sans', sans-serif;
+            background-color: black;
+        }
+
+        #playBtn,
+        #pauseBtn {
+            background-color: #21CDFF;
+            border-radius: 50%;
+        }
+
+        #rewindBtn,
+        #forwardBtn {
+            color: #21CDFF;
+        }
+    </style>
 </head>
 
-<body class="bg-gray-100 font-[Instrument_Sans]">
-    <div class="max-w-5xl mx-auto px-4 py-5 text-center flex justify-center flex-col items-center">
-        <h1 class="text-3xl font-semibold text-gray-800">Analyze Videos</h1>
-
-        <div class="w-full max-w-3xl flex justify-between mb-1">
-            <div class="flex item-center">
-                <h3 class="text-lg font-medium text-gray-600">{{ $video->title }}</h3>
-            </div>
-            <div class="flex space-x-1">
-                <button class="px-5 py-2 bg-slate-900 text-white font-medium rounded-3xl hover:bg-slate-600 transition">
+<body class="main-body text-white h-screen">
+    <div class="relative h-105">
+        <div class="flex justify-end buttonDiv absolute top-0 right-0 z-10">
+            <div class="flex space-x-3 py-2 px-2">
+                <button class="text-white cursor-pointer ">
+                    <i class="fa-solid fa-chart-column "></i>
                     Stats
                 </button>
-                <button class="px-5 py-2 bg-slate-900 text-white font-medium rounded-3xl hover:bg-slate-600 transition">
+                <button class="text-white cursor-pointer ">
+                    <i class="fa-solid fa-clipboard-list"></i>
                     Lineup
                 </button>
-                <button class="px-5 py-2 bg-slate-900 text-white font-medium rounded-3xl hover:bg-slate-600 transition">
+                <button class="text-white cursor-pointer ">
+                    <i class="fa-solid fa-filter"></i>
                     Filter
                 </button>
             </div>
+        </div>
+        <div class="h-85 absolute inset-0">
+            <div class="flex justify-center w-full h-105">
+                <video src="{{ $video->video_url }}" id="matchVideo" class="w-full max-w-5xl "></video>
+                <button id="fullscreenBtn"
+                    class="absolute bottom-2 right-2 px-3 py-2 bg-black/70 text-white rounded-lg hover:bg-black">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+            </div>
+        </div>
+        <div class="absolute bottom-0 left-0 w-full bg-black/50">
+            <div class="flex justify-center gap-2 mt-1">
+                <button id="rewindBtn" class="text-2xl">-5
+                    <i class="fa-solid fa-backward"></i>
+                </button>
+                <button id="pauseBtn" class="w-8 h-8  text-white hover:bg-slate-600 transition">
+                    <i class="fa-solid fa-pause"></i>
 
-        </div>
-        <div class="flex justify-center w-full">
-            <video src="{{ $video->video_url }}" id="matchVideo"
-                class="w-full max-w-3xl h-[280px] rounded-lg shadow-lg object-cover"></video>
-        </div>
-        <div class="w-full max-w-2xl mt-2 flex items-center gap-2">
-            <span id="currentTime">0:00</span>
-            <input type="range" id="videoTimeline" value="0" min="0" step="0.1" class="w-full">
-            <span id="durationTime">0:00</span>
-        </div>
-        <div class="flex justify-center mt-4 gap-2">
-            <button id="rewindBtn" class="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-600 transition">« 5s</button>
-            <button id="playBtn" class="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-600 transition">Play</button>
-            {{-- <button id="pauseBtn" class="px-4 py-2 bg-red-600 text-white rounded">Pause</button> --}}
+                </button>
+                <button id="playBtn" class="w-8 h-8  text-white hover:bg-slate-600 transition">
+                    <i class="fa-solid fa-play"></i>
+                </button>
+                <button id="forwardBtn" class="text-2xl">
+                    <i class="fa-solid fa-forward"></i>
+                    <span class="">5+</span>
+                </button>
 
-            <button id="forwardBtn" class="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-600 transition">5s »</button>
+            </div>
+            <div>
+
+                <div class="w-full max-w-8xl flex items-center gap-2 mx-auto">
+                    <span id="currentTime" class="text-white">0:00</span>
+                    <input type="range" id="videoTimeline" value="0" min="0" step="0.1"
+                        class="w-full h-1">
+                    <span id="durationTime" class="text-white">0:00</span>
+                </div>
+            </div>
         </div>
     </div>
+    <div class="flex h-55 bg-blue-500 ">
+        <div class="bg-gray-500 w-full border-2 border-gray-800">Hello</div>
+
+        {{-- Events --}}
+        <div class="h-full w-190 border-2 border-gray-800">
+
+            <div class="bg-slate-900 top-0">
+                <p class="px-2 py-1">Event Type</p>
+                <div class="h-full bg-gray-600">
+                    <button class="px-4 py-2 border border-slate-900 rounded-md bg-white text-slate-900 hover:bg-slate-900 hover:text-white transition-colors duration-300">
+                        Click Me
+                    </button>
+                </div>
+            </div>
+
+        </div>
+        <div class="bg-gray-500 w-190 border-2 border-gray-800">Hello</div>
+    </div>
+
 </body>
 
 </html>

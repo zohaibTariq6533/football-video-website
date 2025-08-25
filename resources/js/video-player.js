@@ -1,59 +1,78 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const video = document.querySelector('video');
-
+    const video = document.getElementById('matchVideo');
     const playBtn = document.getElementById('playBtn');
-    // const pauseBtn = document.getElementById('pauseBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
     const rewindBtn = document.getElementById('rewindBtn');
     const forwardBtn = document.getElementById('forwardBtn');
     const timeline = document.getElementById('videoTimeline');
     const currentTimeText = document.getElementById('currentTime');
     const durationText = document.getElementById('durationTime');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
 
-    // Format seconds to mm:ss
+    
+
+    if (!video || !timeline) return;
+
     function formatTime(seconds) {
+        if (isNaN(seconds) || seconds < 0) return '0:00';
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
-    // Update timeline max when video metadata is loaded
+    // ✅ Ensure correct numeric max/step
     video.addEventListener('loadedmetadata', () => {
-        timeline.max = video.duration;
+        timeline.max = String(Math.floor(video.duration));
+        timeline.step = "0.1";  // allow smooth scrubbing
+        timeline.value = "0";
         durationText.textContent = formatTime(video.duration);
+        currentTimeText.textContent = "0:00";
     });
 
-    // Update timeline and current time while video plays
+    // ✅ Update timeline properly
     video.addEventListener('timeupdate', () => {
-        timeline.value = video.currentTime;
+        timeline.value = String(video.currentTime);
         currentTimeText.textContent = formatTime(video.currentTime);
     });
 
-    // Seek video when user drags timeline
-    timeline.addEventListener('input', () => {
-        video.currentTime = timeline.value;
-    });
-    playBtn.addEventListener('click', () => {
-        if (video.paused) {
-            playBtn.innerHTML="Stop";
-            video.play();
-            
-        }
-        else {
-            playBtn.innerHTML="Play";
-            video.pause();
-            
+    // ✅ Fix Chrome/Edge seek issue
+    timeline.addEventListener('input', (e) => {
+        const newTime = parseFloat(e.target.value);
+        if (!isNaN(newTime)) {
+            video.currentTime = newTime;
         }
     });
 
-    // pauseBtn.addEventListener('click', () => {
-    //     video.pause();
-    // });
+    // Fallback on change
+    timeline.addEventListener('change', (e) => {
+        const newTime = parseFloat(e.target.value);
+        if (!isNaN(newTime)) {
+            video.currentTime = newTime;
+        }
+    });
+
+    // Play/Pause/Seek
+    playBtn.addEventListener('click', () => video.play());
+    pauseBtn.addEventListener('click', () => video.pause());
 
     rewindBtn.addEventListener('click', () => {
-        video.currentTime = Math.max(0, video.currentTime - 5);
+        const newTime = Math.max(0, video.currentTime - 5);
+        video.currentTime = newTime;
+        timeline.value = String(newTime);
     });
 
     forwardBtn.addEventListener('click', () => {
-        video.currentTime = Math.min(video.duration, video.currentTime + 5);
+        const newTime = Math.min(video.duration, video.currentTime + 5);
+        video.currentTime = newTime;
+        timeline.value = String(newTime);
+    });
+    fullscreenBtn.addEventListener('click', () => {
+        if (video.requestFullscreen) {
+            video.requestFullscreen();
+        } else if (video.webkitRequestFullscreen) { // Safari
+            video.webkitRequestFullscreen();
+        } else if (video.msRequestFullscreen) { // IE/Edge
+            video.msRequestFullscreen();
+        }
     });
 });
