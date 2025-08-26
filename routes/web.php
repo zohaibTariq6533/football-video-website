@@ -7,6 +7,7 @@ use App\Http\Middleware\AdminCheck;
 // use App\Http\Middleware\TestUser;
 use App\Http\Middleware\ValidUser;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FootballAnalyzerController;
 
 
 //Public Pages
@@ -75,13 +76,28 @@ Route::middleware(['isUserValid',AdminCheck::class])->group(function(){
 
     //Analyze game part
     Route::get('/admin/dashboard/video-analyze/{id}',[GameController::class,'videoAnalyze'])->name('analyze-video-page');
+
+    // Route::get('/football/analyzer', [FootballAnalyzerController::class, 'index'])->name('football.analyzer');
+    // Route::get('/api/match/{matchId}/data', [FootballAnalyzerController::class, 'getMatchData']);
+    // Route::post('/api/match/analysis', [FootballAnalyzerController::class, 'saveAnalysis']);
+
+    // / Football Analyzer Routes
+Route::get('/football/analyzer', [FootballAnalyzerController::class, 'index'])->name('football.analyzer');
+
+// API Routes for the analyzer
+Route::prefix('api')->group(function () {
+    Route::get('/match/{matchId}/data', [FootballAnalyzerController::class, 'getMatchData']);
+    Route::post('/match/analysis', [FootballAnalyzerController::class, 'saveAnalysis']);
+    // Route::post('/match/analysis/bulk', [FootballAnalyzerController::class, 'storeBulk']);
+    Route::post('/match/analysis/bulk', function ($msg) {
+        return $msg;
+    });
+    // Route::post('/match/analysis/bulk', function (Illuminate\Http\Request $request) {
+    // return response()->json([
+    //     'status' => 'success',
+    //     'message' => 'All analysis data saved successfully',
+    //     'saved_data' => $request->analysis_data
+    //     ]);
+    // });
 });
-
-
-
-
-
-
-
-
-
+});
