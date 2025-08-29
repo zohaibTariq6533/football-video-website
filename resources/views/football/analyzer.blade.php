@@ -14,7 +14,7 @@
 <body class="bg-gray-100 antialiased">
     <div class="min-h-screen">
         <!-- Header -->
-        <header class="bg-white shadow-sm border-b">
+        {{-- <header class="bg-white shadow-sm border-b">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center py-4">
                     <h1 class="text-2xl font-bold text-gray-900">Football Match Analyzer</h1>
@@ -23,13 +23,17 @@
                     </div>
                 </div>
             </div>
-        </header>
+        </header> --}}
 
         <!-- Main Content -->
         <main>
             <!-- React Component Mount Point -->
-            <div id="football-analyzer"></div>
+            <div id="football-analyzer" data-video='@json($video)'></div>
         </main>
+        {{-- <script>
+            window.videoData = @json($video);
+        </script>
+        <script src="{{ mix('js/app.js') }}"></script>  --}}
     </div>
 </body>
 </html>

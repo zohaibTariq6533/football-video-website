@@ -83,13 +83,15 @@ class GameController extends Controller
 
     public function adminAnalyzedGame(){
         $adminAnalyzedGame = DB::table('videos')->where('status','In progress')->get();
-        return view('games/inProgressGames',['video'=>$adminAnalyzedGame]);
+        return view('games.inProgressGames',['video'=>$adminAnalyzedGame]);
 
     }
 
     public function videoAnalyze(string $id){
         $video=DB::table('videos')->where('id',$id)->first();
-        return view('analyze-video',['video'=>$video]);
+        // dd($video);
+        // return view('analyze-video',['video'=>$video]);
+        return view('football.analyzer',['video'=>$video]);
 
     }
 }
