@@ -81,7 +81,6 @@
 
             </div>
             <div>
-
                 <div class="w-full max-w-8xl flex items-center gap-2 mx-auto">
                     <span id="currentTime" class="text-white">0:00</span>
                     <input type="range" id="videoTimeline" value="0" min="0" step="0.1"
