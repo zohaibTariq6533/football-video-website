@@ -1,5 +1,5 @@
 // import React, { useState, useRef, useEffect } from 'react';
-// import { Play, Pause, SkipBack, SkipForward, Upload, X, Save, ChevronDown, ChevronUp, BarChart3, ClipboardList, Filter, Maximize, Edit2, FastForward, Rewind, Volume2, VolumeX } from 'lucide-react';
+// import { Play, Pause, SkipBack, SkipForward, Upload, X, Save, ChevronDown, ChevronUp, BarChart3, ClipboardList, Filter, Maximize, Edit2, FastForward, Rewind } from 'lucide-react';
 
 // const FootballMatchAnalyzer = ({ matchId = 1 }) => {
 //   const [isPlaying, setIsPlaying] = useState(false);
@@ -16,17 +16,11 @@
 //   const [isVideoLoading, setIsVideoLoading] = useState(false);
 //   const [showControls, setShowControls] = useState(false);
 //   const [editingMarkerId, setEditingMarkerId] = useState(null);
-//   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-//   const [isMuted, setIsMuted] = useState(false);
-//   const [volume, setVolume] = useState(1);
+//   const [playbackSpeed, setPlaybackSpeed] = useState(1); // New state for playback speed
   
 //   // New states for event configuration
 //   const [selectedEventForConfig, setSelectedEventForConfig] = useState(null);
 //   const [eventConfigData, setEventConfigData] = useState({});
-  
-//   // New states for current events dropdown
-//   const [currentEvents, setCurrentEvents] = useState([]);
-//   const [showCurrentEventsDropdown, setShowCurrentEventsDropdown] = useState(false);
   
 //   // New states for possession tracking
 //   const [activePossession, setActivePossession] = useState(null); // null, 'A', or 'B'
@@ -56,8 +50,7 @@
 //       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
 //       actions: ['First Half', 'Second Half', 'Extra Time', 'Penalty Kicks', 'Time-out'],
 //       isTimeBased: true,
-//       key: 'i',
-//       requiresTeam: false
+//       key: 'i'
 //     },
 //     { 
 //       name: 'Possession', 
@@ -65,24 +58,21 @@
 //       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
 //       actions: [],
 //       isTimeBased: true,
-//       key: 'p',
-//       requiresTeam: true
+//       key: 'p'
 //     },
 //     { 
 //       name: 'Transition', 
 //       color: '#3B82F6', 
 //       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
 //       actions: ['Transition'],
-//       key: 'r',
-//       requiresTeam: false
+//       key: 'r'
 //     },
 //     { 
 //       name: 'Set Play', 
 //       color: '#8B5CF6', 
 //       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
 //       actions: ['Kick off', 'Free Kick', 'Throw In', 'Penalty Kick', 'Goal Kick', 'Corner Kick'],
-//       key: 't',
-//       requiresTeam: true
+//       key: 't'
 //     },
 //     { 
 //       name: 'Attack 3rd', 
@@ -90,43 +80,35 @@
 //       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
 //       actions: [],
 //       isTimeBased: true,
-//       key: 'a',
-//       requiresTeam: true
+//       key: 'a'
 //     },
 //     { 
 //       name: 'Shot', 
 //       color: '#EF4444', 
 //       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
-//       actions: ['Goal', 'Save', 'Wide', 'Blocked'],
-//       key: 's',
-//       requiresTeam: true,
-//       requiresPlayer: true,
-//       hasAssist: true
+//       actions: ['Goal', 'Save', 'Wide', 'Blocked', 'Assist'],
+//       key: 's'
 //     },
 //     { 
 //       name: 'Foul', 
 //       color: '#EAB308', 
 //       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
 //       actions: ['Yellow Card', 'Red Card'],
-//       key: 'f',
-//       requiresTeam: true,
-//       requiresPlayer: true
+//       key: 'f'
 //     },
 //     { 
 //       name: 'Offside', 
 //       color: '#EC4899', 
 //       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
 //       actions: [],
-//       key: 'o',
-//       requiresTeam: true
+//       key: 'o'
 //     },
 //     { 
 //       name: 'Aerial Duel', 
 //       color: '#06B6D4', 
 //       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
 //       actions: [],
-//       key: 'd',
-//       requiresTeam: true
+//       key: 'd'
 //     }
 //   ];
 
@@ -243,32 +225,6 @@
 //     }
 //   };
 
-//   // Handle volume change
-//   const handleVolumeChange = (newVolume) => {
-//     setVolume(newVolume);
-//     if (videoRef.current) {
-//       videoRef.current.volume = newVolume;
-//     }
-//     if (newVolume === 0) {
-//       setIsMuted(true);
-//     } else {
-//       setIsMuted(false);
-//     }
-//   };
-
-//   // Toggle mute
-//   const toggleMute = () => {
-//     if (videoRef.current) {
-//       if (isMuted) {
-//         videoRef.current.volume = volume;
-//         setIsMuted(false);
-//       } else {
-//         videoRef.current.volume = 0;
-//         setIsMuted(true);
-//       }
-//     }
-//   };
-
 //   // Sync video with timeline
 //   useEffect(() => {
 //     if (videoRef.current && videoUrl && !isSeekingRef.current) {
@@ -276,9 +232,6 @@
 //       if (videoRef.current.playbackRate !== playbackSpeed) {
 //         videoRef.current.playbackRate = playbackSpeed;
 //       }
-      
-//       // Set volume
-//       videoRef.current.volume = isMuted ? 0 : volume;
       
 //       try {
 //         if (isPlaying && videoRef.current.paused) {
@@ -291,7 +244,7 @@
 //         console.error("Video control error:", error);
 //       }
 //     }
-//   }, [isPlaying, videoUrl, playbackSpeed, isMuted, volume]);
+//   }, [isPlaying, videoUrl, playbackSpeed]);
 
 //   // Update the handleVideoTimeUpdate function
 //   const handleVideoTimeUpdate = () => {
@@ -359,11 +312,10 @@
 //         action: 'Ball Control',
 //         color: team.color,
 //         isTimeBased: true,
-//         isConfigured: false
+//         isConfigured: true
 //       };
       
 //       setAnalysisMarkers(prev => [...prev, possessionMarker]);
-//       setCurrentEvents(prev => [...prev, possessionMarker]);
       
 //       // Reset possession state
 //       setActivePossession(null);
@@ -392,7 +344,7 @@
 //         action: null,
 //         color: eventTypes.find(et => et.name === 'Transition').color,
 //         isTimeBased: true,
-//         isConfigured: true
+//         isConfigured: false
 //       };
       
 //       setAnalysisMarkers(prev => [...prev, transitionMarker]);
@@ -454,11 +406,10 @@
 //         action: 'Final Third Entry',
 //         color: eventTypes.find(et => et.name === 'Attack 3rd').color,
 //         isTimeBased: true,
-//         isConfigured: false
+//         isConfigured: true
 //       };
       
 //       setAnalysisMarkers(prev => [...prev, attack3rdMarker]);
-//       setCurrentEvents(prev => [...prev, attack3rdMarker]);
       
 //       // Reset attack 3rd state
 //       setActiveAttack3rd(false);
@@ -506,48 +457,25 @@
 //       jerseyNo: null,
 //       playerName: null,
 //       action: null,
-//       assist_player_id: null,
-//       assistJerseyNo: null,
-//       assistPlayerName: null,
 //       color: eventConfig.color,
 //       isTimeBased: true,
 //       isConfigured: false // Mark as unconfigured
 //     };
 
 //     setAnalysisMarkers(prev => [...prev, newMarker]);
-//     setCurrentEvents(prev => [...prev, newMarker]);
 //   };
 
 //   // Handle clicking on timeline event bar
 //   const handleEventBarClick = (marker, e) => {
 //     e.stopPropagation();
 //     if (!marker.isConfigured) {
-//       // Remove from current events when configuring
-//       setCurrentEvents(prev => prev.filter(event => event.id !== marker.id));
-      
 //       setSelectedEventForConfig(marker);
 //       setEventConfigData({
 //         selectedTeam: null,
 //         selectedPlayer: null,
-//         selectedAction: null,
-//         selectedAssistPlayer: null
+//         selectedAction: null
 //       });
 //     }
-//   };
-
-//   // Handle selecting event from current events dropdown
-//   const handleCurrentEventSelect = (marker) => {
-//     // Remove from current events when configuring
-//     setCurrentEvents(prev => prev.filter(event => event.id !== marker.id));
-    
-//     setSelectedEventForConfig(marker);
-//     setEventConfigData({
-//       selectedTeam: null,
-//       selectedPlayer: null,
-//       selectedAction: null,
-//       selectedAssistPlayer: null
-//     });
-//     setShowCurrentEventsDropdown(false);
 //   };
 
 //   // Edit configured event
@@ -556,29 +484,22 @@
 //     setSelectedEventForConfig(marker);
 //     const team = teams.find(t => t.name === marker.team);
 //     const player = team?.players.find(p => p.id === marker.player_id);
-//     const assistPlayer = team?.players.find(p => p.id === marker.assist_player_id);
 //     setEventConfigData({
 //       selectedTeam: team,
 //       selectedPlayer: player,
-//       selectedAction: marker.action,
-//       selectedAssistPlayer: assistPlayer
+//       selectedAction: marker.action
 //     });
 //   };
 
 //   // Save configured event
 //   const saveConfiguredEvent = () => {
-//     if (!selectedEventForConfig) return;
-    
-//     const eventConfig = eventTypes.find(et => et.name === selectedEventForConfig.eventType);
-    
-//     // For events that require team selection
-//     if (eventConfig.requiresTeam && !eventConfigData.selectedTeam) {
+//     if (!selectedEventForConfig || !eventConfigData.selectedTeam) {
 //       alert('Please select a team');
 //       return;
 //     }
 
-//     // For events that require player selection
-//     if (eventConfig.requiresPlayer && !eventConfigData.selectedPlayer) {
+//     // For Shot and Set Play events, require player selection
+//     if (['Shot', 'Set Play', 'Aerial Duel'].includes(selectedEventForConfig.eventType) && !eventConfigData.selectedPlayer) {
 //       alert('Please select a player for this event');
 //       return;
 //     }
@@ -589,14 +510,11 @@
 //         marker.id === selectedEventForConfig.id 
 //           ? {
 //               ...marker,
-//               team: eventConfig.requiresTeam ? eventConfigData.selectedTeam.name : 'Match',
+//               team: eventConfigData.selectedTeam.name,
 //               player_id: eventConfigData.selectedPlayer ? eventConfigData.selectedPlayer.id : null,
 //               jerseyNo: eventConfigData.selectedPlayer ? eventConfigData.selectedPlayer.jerseyNo : null,
 //               playerName: eventConfigData.selectedPlayer ? eventConfigData.selectedPlayer.name : null,
-//               action: eventConfigData.selectedAction || (eventConfig.actions.length > 0 ? eventConfig.actions[0] : selectedEventForConfig.eventType),
-//               assist_player_id: eventConfigData.selectedAssistPlayer ? eventConfigData.selectedAssistPlayer.id : null,
-//               assistJerseyNo: eventConfigData.selectedAssistPlayer ? eventConfigData.selectedAssistPlayer.jerseyNo : null,
-//               assistPlayerName: eventConfigData.selectedAssistPlayer ? eventConfigData.selectedAssistPlayer.name : null,
+//               action: eventConfigData.selectedAction || eventTypes.find(et => et.name === marker.eventType).actions[0],
 //               isConfigured: true
 //             }
 //           : marker
@@ -611,11 +529,6 @@
 
 //   // Cancel event configuration
 //   const cancelEventConfig = () => {
-//     // Add back to current events if not editing
-//     if (!editingMarkerId && selectedEventForConfig) {
-//       setCurrentEvents(prev => [...prev, selectedEventForConfig]);
-//     }
-    
 //     setSelectedEventForConfig(null);
 //     setEventConfigData({});
 //     setEditingMarkerId(null);
@@ -624,8 +537,6 @@
 //   // Remove marker from timeline and action list
 //   const removeMarker = (markerId) => {
 //     setAnalysisMarkers(prev => prev.filter(marker => marker.id !== markerId));
-//     setCurrentEvents(prev => prev.filter(event => event.id !== markerId));
-    
 //     // Close config panel if this marker was being configured
 //     if (selectedEventForConfig && selectedEventForConfig.id === markerId) {
 //       setSelectedEventForConfig(null);
@@ -754,7 +665,6 @@
 //                     setDuration(Math.floor(videoRef.current.duration));
 //                     setCurrentTime(videoRef.current.currentTime);
 //                     setIsVideoLoading(false);
-//                     videoRef.current.volume = volume;
 //                   }
 //                 }}
 //                 onLoadStart={() => setIsVideoLoading(true)}
@@ -823,6 +733,15 @@
 //               </div>
 //             )}
 //           </div>
+          
+//           {/* Keyboard shortcuts info */}
+//           {/* <div className="absolute bottom-20 left-4 text-white bg-black bg-opacity-75 px-3 py-2 rounded-lg">
+//             <div className="text-xs">
+//               <div className="font-semibold mb-1">Keyboard Shortcuts:</div>
+//               <div>I: Period | P: Possession | T: Set Play | A: Attack 3rd</div>
+//               <div>S: Shot | F: Foul | O: Offside | R: Transition | D: Aerial Duel</div>
+//             </div>
+//           </div> */}
           
 //           {/* Fullscreen button */}
 //           <button
@@ -901,30 +820,9 @@
 //                   }}
 //                   className="p-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
 //                 >
+//                   {/* <SkipForward  /> */}
 //                   <FastForward size={18} />
 //                 </button>
-                
-//                 {/* Volume Control */}
-//                 <div className="flex items-center gap-2">
-//                   <button
-//                     onClick={toggleMute}
-//                     className="p-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
-//                   >
-//                     {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-//                   </button>
-//                   <input
-//                     type="range"
-//                     min="0"
-//                     max="1"
-//                     step="0.1"
-//                     value={isMuted ? 0 : volume}
-//                     onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-//                     className="w-16 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-//                     style={{
-//                       background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(isMuted ? 0 : volume) * 100}%, #6B7280 ${(isMuted ? 0 : volume) * 100}%, #6B7280 100%)`
-//                     }}
-//                   />
-//                 </div>
                 
 //                 {/* Speed Control Dropdown */}
 //                 <div className="relative group">
@@ -969,6 +867,7 @@
 //           </div>
 //         )}
 //       </div>
+
 
 //       {/* Main Content - Three Column Layout */}
 //       <div className="flex h-auto bg-gray-100">
@@ -1171,89 +1070,38 @@
 //               </div>
 //             </div>
 
-//             {/* Unconfigured Events Section */}
-//             {analysisMarkers.filter(marker => !marker.isConfigured).length > 0 && (
-//               <div className="bg-yellow-50 border-t-2 border-b-2 border-yellow-200 p-4 mt-2">
-//                 <h4 className="text-sm font-semibold text-yellow-800 mb-2">
-//                   Unconfigured Events (Click to configure):
-//                 </h4>
-//                 <div className="flex flex-wrap gap-2">
-//                   {analysisMarkers.filter(marker => !marker.isConfigured).map(marker => (
-//                     <div 
-//                       key={marker.id} 
-//                       className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-yellow-300 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
-//                       onClick={() => {
-//                         setCurrentEvents(prev => prev.filter(event => event.id !== marker.id));
-//                         setSelectedEventForConfig(marker);
-//                         setEventConfigData({
-//                           selectedTeam: null,
-//                           selectedPlayer: null,
-//                           selectedAction: null,
-//                           selectedAssistPlayer: null
-//                         });
-//                       }}
-//                     >
-//                       <div
-//                         className="w-3 h-3 rounded-sm"
-//                         style={{ backgroundColor: marker.color }}
-//                       />
-//                       <span className="text-sm font-medium">{marker.eventType}</span>
-//                       <span className="text-xs text-gray-500">
-//                         {formatTime(marker.time)} - {formatTime(marker.endTime)}
-//                       </span>
-//                       <button
-//                         onClick={(e) => {
-//                           e.stopPropagation();
-//                           removeMarker(marker.id);
-//                         }}
-//                         className="w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-//                         style={{ fontSize: '10px' }}
-//                       >
-//                         ×
-//                       </button>
-//                     </div>
-//                   ))}
-//                 </div>
-//               </div>
-//             )}
-
-//             {/* Current Events Dropdown */}
-//             {currentEvents.length > 0 && (
-//               <div className="bg-blue-50 border-t-2 border-b-2 border-blue-200 p-4 mt-2">
-//                 <div className="flex items-center justify-between mb-2">
-//                   <h4 className="text-sm font-semibold text-blue-800">
-//                     Current Events ({currentEvents.length})
+//               {/* Unconfigured Events Section - Below Video */}
+//               {analysisMarkers.filter(marker => !marker.isConfigured).length > 0 && (
+//                 <div className="bg-yellow-50 border-t-2 border-b-2 border-yellow-200 p-4 mt-2">
+//                   <h4 className="text-sm font-semibold text-yellow-800 mb-2">
+//                     Unconfigured Events (Click to configure):
 //                   </h4>
-//                   <button
-//                     onClick={() => setShowCurrentEventsDropdown(!showCurrentEventsDropdown)}
-//                     className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-//                   >
-//                     {showCurrentEventsDropdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-//                   </button>
-//                 </div>
-                
-//                 {showCurrentEventsDropdown && (
-//                   <div className="space-y-2 max-h-40 overflow-y-auto">
-//                     {currentEvents.map(event => (
+//                   <div className="flex flex-wrap gap-2">
+//                     {analysisMarkers.filter(marker => !marker.isConfigured).map(marker => (
 //                       <div 
-//                         key={event.id}
-//                         className="flex items-center justify-between p-2 bg-white border border-blue-200 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
-//                         onClick={() => handleCurrentEventSelect(event)}
+//                         key={marker.id} 
+//                         className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-yellow-300 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+//                         onClick={() => {
+//                           setSelectedEventForConfig(marker);
+//                           setEventConfigData({
+//                             selectedTeam: null,
+//                             selectedPlayer: null,
+//                             selectedAction: null
+//                           });
+//                         }}
 //                       >
-//                         <div className="flex items-center gap-2">
-//                           <div
-//                             className="w-3 h-3 rounded-sm"
-//                             style={{ backgroundColor: event.color }}
-//                           />
-//                           <span className="text-sm font-medium">{event.eventType}</span>
-//                           <span className="text-xs text-gray-500">
-//                             {formatTime(event.time)} - {formatTime(event.endTime)}
-//                           </span>
-//                         </div>
+//                         <div
+//                           className="w-3 h-3 rounded-sm"
+//                           style={{ backgroundColor: marker.color }}
+//                         />
+//                         <span className="text-sm font-medium">{marker.eventType}</span>
+//                         <span className="text-xs text-gray-500">
+//                           {formatTime(marker.time)} - {formatTime(marker.endTime)}
+//                         </span>
 //                         <button
 //                           onClick={(e) => {
 //                             e.stopPropagation();
-//                             removeMarker(event.id);
+//                             removeMarker(marker.id);
 //                           }}
 //                           className="w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
 //                           style={{ fontSize: '10px' }}
@@ -1263,9 +1111,9 @@
 //                       </div>
 //                     ))}
 //                   </div>
-//                 )}
-//               </div>
-//             )}
+//                 </div>
+//               )}
+
 //           </div>
 //         </div>
 
@@ -1353,7 +1201,6 @@
 //                       {marker.team}
 //                       {marker.playerName && ` • #${marker.jerseyNo} ${marker.playerName}`}
 //                       {marker.action && ` • ${marker.action}`}
-//                       {marker.assistPlayerName && ` • Assist: #${marker.assistJerseyNo} ${marker.assistPlayerName}`}
 //                     </div>
 //                   </div>
 //                 ))}
@@ -1387,76 +1234,30 @@
 //                   </div>
 //                 </div>
 
-//                 {/* Team Selection - Only show for events that require team */}
-//                 {eventTypes.find(et => et.name === selectedEventForConfig.eventType)?.requiresTeam && (
-//                   <div className="mb-4">
-//                     <div className="text-sm font-medium text-gray-700 mb-2">Select Team:</div>
-//                     <div className="flex gap-2">
-//                       {teams.map(team => (
-//                         <button
-//                           key={team.name}
-//                           onClick={() => setEventConfigData(prev => ({ ...prev, selectedTeam: team, selectedPlayer: null, selectedAssistPlayer: null }))}
-//                           className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-//                             eventConfigData.selectedTeam?.name === team.name
-//                               ? 'bg-blue-600 text-white'
-//                               : team.name === 'Team A' 
-//                               ? 'bg-red-600 text-white hover:bg-red-700'
-//                               : 'bg-green-600 text-white hover:bg-green-700'
-//                           }`}
-//                         >
-//                           {team.shortName}
-//                         </button>
-//                       ))}
-//                     </div>
+//                 {/* Team Selection */}
+//                 <div className="mb-4">
+//                   <div className="text-sm font-medium text-gray-700 mb-2">Select Team:</div>
+//                   <div className="flex gap-2">
+//                     {teams.map(team => (
+//                       <button
+//                         key={team.name}
+//                         onClick={() => setEventConfigData(prev => ({ ...prev, selectedTeam: team, selectedPlayer: null }))}
+//                         className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+//                           eventConfigData.selectedTeam?.name === team.name
+//                             ? 'bg-blue-600 text-white'
+//                             : team.name === 'Team A' 
+//                             ? 'bg-red-600 text-white hover:bg-red-700'
+//                             : 'bg-green-600 text-white hover:bg-green-700'
+//                         }`}
+//                       >
+//                         {team.shortName}
+//                       </button>
+//                     ))}
 //                   </div>
-//                 )}
+//                 </div>
 
-//                 {/* Action Selection for Shot events */}
-//                 {(selectedEventForConfig.eventType === 'Shot' && eventConfigData.selectedTeam) && (
-//                   <div className="mb-4">
-//                     <div className="text-sm font-medium text-gray-700 mb-2">Result:</div>
-//                     <div className="grid grid-cols-2 gap-1">
-//                       {['Goal', 'Save', 'Wide', 'Blocked'].map(action => (
-//                         <button
-//                           key={action}
-//                           onClick={() => setEventConfigData(prev => ({ ...prev, selectedAction: action }))}
-//                           className={`px-2 py-2 text-xs rounded transition-colors ${
-//                             eventConfigData.selectedAction === action
-//                               ? 'bg-blue-600 text-white'
-//                               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-//                           }`}
-//                         >
-//                           {action}
-//                         </button>
-//                       ))}
-//                     </div>
-//                   </div>
-//                 )}
-
-//                 {/* Action Selection for other events that have actions */}
-//                 {(eventConfigData.selectedTeam && selectedEventForConfig.eventType !== 'Shot' && eventTypes.find(et => et.name === selectedEventForConfig.eventType).actions.length > 0) && (
-//                   <div className="mb-4">
-//                     <div className="text-sm font-medium text-gray-700 mb-2">Select Action:</div>
-//                     <div className="grid grid-cols-2 gap-1">
-//                       {eventTypes.find(et => et.name === selectedEventForConfig.eventType).actions.map(action => (
-//                         <button
-//                           key={action}
-//                           onClick={() => setEventConfigData(prev => ({ ...prev, selectedAction: action }))}
-//                           className={`px-2 py-2 text-xs rounded transition-colors ${
-//                             eventConfigData.selectedAction === action
-//                               ? 'bg-blue-600 text-white'
-//                               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-//                           }`}
-//                         >
-//                           {action}
-//                         </button>
-//                       ))}
-//                     </div>
-//                   </div>
-//                 )}
-
-//                 {/* Player Selection for events that require player */}
-//                 {(eventTypes.find(et => et.name === selectedEventForConfig.eventType)?.requiresPlayer && eventConfigData.selectedTeam) && (
+//                 {/* Player Selection for Shot, Set Play, and Aerial Duel events */}
+//                 {(['Shot', 'Set Play', 'Aerial Duel'].includes(selectedEventForConfig.eventType) && eventConfigData.selectedTeam) && (
 //                   <div className="mb-4">
 //                     <div className="text-sm font-medium text-gray-700 mb-2">Select Player:</div>
 //                     <div className="grid grid-cols-3 gap-1 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded">
@@ -1482,40 +1283,25 @@
 //                   </div>
 //                 )}
 
-//                 {/* Assist Player Selection for Shot events */}
-//                 {(selectedEventForConfig.eventType === 'Shot' && eventConfigData.selectedTeam && eventConfigData.selectedAction === 'Goal') && (
+//                 {/* Action Selection */}
+//                 {eventConfigData.selectedTeam && (
 //                   <div className="mb-4">
-//                     <div className="text-sm font-medium text-gray-700 mb-2">Select Assist (Optional):</div>
-//                     <div className="grid grid-cols-3 gap-1 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded">
-//                       <button
-//                         onClick={() => setEventConfigData(prev => ({ ...prev, selectedAssistPlayer: null }))}
-//                         className={`p-2 rounded text-xs font-medium transition-colors ${
-//                           !eventConfigData.selectedAssistPlayer
-//                             ? 'bg-blue-600 text-white'
-//                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-//                         }`}
-//                       >
-//                         None
-//                       </button>
-//                       {eventConfigData.selectedTeam.players.map(player => (
+//                     <div className="text-sm font-medium text-gray-700 mb-2">Select Action:</div>
+//                     <div className="grid grid-cols-2 gap-1">
+//                       {eventTypes.find(et => et.name === selectedEventForConfig.eventType).actions.map(action => (
 //                         <button
-//                           key={player.id}
-//                           onClick={() => setEventConfigData(prev => ({ ...prev, selectedAssistPlayer: player }))}
-//                           className={`p-2 rounded text-xs font-medium transition-colors ${
-//                             eventConfigData.selectedAssistPlayer?.id === player.id
+//                           key={action}
+//                           onClick={() => setEventConfigData(prev => ({ ...prev, selectedAction: action }))}
+//                           className={`px-2 py-2 text-xs rounded transition-colors ${
+//                             eventConfigData.selectedAction === action
 //                               ? 'bg-blue-600 text-white'
 //                               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
 //                           }`}
 //                         >
-//                           #{player.jerseyNo}
+//                           {action}
 //                         </button>
 //                       ))}
 //                     </div>
-//                     {eventConfigData.selectedAssistPlayer && (
-//                       <div className="text-xs mt-2 bg-blue-50 rounded px-2 py-1">
-//                         Assist: #{eventConfigData.selectedAssistPlayer.jerseyNo} - {eventConfigData.selectedAssistPlayer.name}
-//                       </div>
-//                     )}
 //                   </div>
 //                 )}
                 
@@ -1523,10 +1309,7 @@
 //                 <div className="flex gap-2">
 //                   <button
 //                     onClick={saveConfiguredEvent}
-//                     disabled={
-//                       (eventTypes.find(et => et.name === selectedEventForConfig.eventType)?.requiresTeam && !eventConfigData.selectedTeam) ||
-//                       (eventTypes.find(et => et.name === selectedEventForConfig.eventType)?.requiresPlayer && !eventConfigData.selectedPlayer)
-//                     }
+//                     disabled={!eventConfigData.selectedTeam}
 //                     className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 //                   >
 //                     {editingMarkerId ? 'Update Event' : 'Save Event'}
@@ -1548,7 +1331,7 @@
 //                   <br />
 //                   2. Click on unconfigured event bars (yellow dashed) to configure them
 //                   <br />
-//                   3. Select team and player (for applicable events)
+//                   3. Select team, player (for shots/set plays/aerial duels), and action
 //                   <br />
 //                   4. Save to add to action list
 //                 </div>
@@ -1557,12 +1340,6 @@
 //                   <br />I: Period | P: Possession | T: Set Play
 //                   <br />A: Attack 3rd | S: Shot | F: Foul | O: Offside
 //                   <br />R: Transition | D: Aerial Duel
-//                 </div>
-//                 <div className="text-sm text-green-600 bg-green-50 rounded p-3 mt-3">
-//                   <strong>Event Types:</strong>
-//                   <br />• <strong>Team-based:</strong> Possession, Attack 3rd, Offside, Aerial Duel
-//                   <br />• <strong>Player-based:</strong> Shot, Foul
-//                   <br />• <strong>Match-based:</strong> Period, Transition
 //                 </div>
 //               </div>
 //             )}
@@ -1943,7 +1720,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       const startTime = possessionStartTime;
       const team = teams.find(t => t.shortName === `Team ${activePossession}`);
       
-      // Create possession marker
+      // Create possession marker - already configured
       const possessionMarker = {
         id: Date.now(),
         time: startTime,
@@ -1956,11 +1733,11 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         action: 'Ball Control',
         color: team.color,
         isTimeBased: true,
-        isConfigured: false
+        isConfigured: true // Mark as configured
       };
       
       setAnalysisMarkers(prev => [...prev, possessionMarker]);
-      setCurrentEvents(prev => [...prev, possessionMarker]);
+      // Don't add to currentEvents as it's already configured
       
       // Reset possession state
       setActivePossession(null);
@@ -1973,7 +1750,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       setActivePossession(activePossessionTeam);
       setPossessionStartTime(currentTime);
       
-      // Automatically create a transition event
+      // Automatically create a transition event - already configured
       const transitionStartTime = Math.max(0, currentTime - 2);
       const transitionEndTime = Math.min(duration, currentTime + 2);
       
@@ -1982,17 +1759,18 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         time: transitionStartTime,
         endTime: transitionEndTime,
         eventType: 'Transition',
-        team: null,
+        team: `Team ${activePossessionTeam}`, // Assign to the team gaining possession
         player_id: null,
         jerseyNo: null,
         playerName: null,
-        action: null,
+        action: 'Transition',
         color: eventTypes.find(et => et.name === 'Transition').color,
         isTimeBased: true,
-        isConfigured: true
+        isConfigured: true // Mark as configured
       };
       
       setAnalysisMarkers(prev => [...prev, transitionMarker]);
+      // Don't add to currentEvents as it's already configured
     }
   };
 
@@ -2003,7 +1781,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       const endTime = currentTime;
       const startTime = periodStartTime;
       
-      // Create period marker
+      // Create period marker - already configured
       const periodMarker = {
         id: Date.now(),
         time: startTime,
@@ -2013,13 +1791,14 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         player_id: null,
         jerseyNo: null,
         playerName: null,
-        action: 'Period',
+        action: 'Period', // Default action
         color: eventTypes.find(et => et.name === 'Period').color,
         isTimeBased: true,
-        isConfigured: true
+        isConfigured: true // Mark as configured
       };
       
       setAnalysisMarkers(prev => [...prev, periodMarker]);
+      // Don't add to currentEvents as it's already configured
       
       // Reset period state
       setActivePeriod(false);
@@ -2296,6 +2075,13 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     };
   }, []);
 
+  // Get configured markers sorted in descending order (latest first)
+  const getSortedMarkers = () => {
+    return [...analysisMarkers]
+      .filter(marker => marker.isConfigured)
+      .sort((a, b) => b.time - a.time); // Sort by time in descending order
+  };
+
   return (
     <div className="w-full max-w-full mx-auto bg-gray-100 min-h-screen">
       {/* Video Upload Modal */}
@@ -2482,12 +2268,14 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                     seekToTime(newTime);
                   }}
                   className="p-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
+                  title="Rewind 10 seconds"
                 >
                   <Rewind size={18} />
                 </button>
                 <button
                   onClick={() => setIsPlaying(!isPlaying)}
                   className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                  title={isPlaying ? "Pause" : "Play"}
                 >
                   {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                 </button>
@@ -2497,6 +2285,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                     seekToTime(newTime);
                   }}
                   className="p-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
+                  title="Forward 10 seconds"
                 >
                   <FastForward size={18} />
                 </button>
@@ -2506,6 +2295,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                   <button
                     onClick={toggleMute}
                     className="p-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
+                    title={isMuted ? "Unmute" : "Mute"}
                   >
                     {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                   </button>
@@ -2520,12 +2310,13 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                     style={{
                       background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(isMuted ? 0 : volume) * 100}%, #6B7280 ${(isMuted ? 0 : volume) * 100}%, #6B7280 100%)`
                     }}
+                    title="Volume control"
                   />
                 </div>
                 
                 {/* Speed Control Dropdown */}
                 <div className="relative group">
-                  <button className="px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors text-sm font-medium">
+                  <button className="px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors text-sm font-medium" title="Playback speed">
                     {playbackSpeed}x
                   </button>
                   <div className="absolute bottom-full mb-0.5 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
@@ -2680,7 +2471,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                         height: '16px',
                         backgroundColor: activePossession === 'A' ? '#EF4444' : '#10B981'
                       }}
-                    />
+                    /> 
                   )}
 
                   {/* Active period bar */}
@@ -2865,7 +2656,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
             <div className="border-t border-gray-200 pt-4">
               <h4 className="font-semibold text-gray-800 mb-3">Action List ({analysisMarkers.filter(m => m.isConfigured).length})</h4>
               <div className="space-y-2 h-auto overflow-y-auto">
-                {analysisMarkers.filter(marker => marker.isConfigured).map(marker => (
+                {getSortedMarkers().map(marker => (
                   <div key={marker.id} className="p-2 bg-white rounded-lg border shadow-sm">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -2987,6 +2778,28 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                   </div>
                 </div>
 
+                {/* Action Selection for Period events */}
+                {(selectedEventForConfig.eventType === 'Period') && (
+                  <div className="mb-4">
+                    <div className="text-sm font-medium text-gray-700 mb-2">Select Period Type:</div>
+                    <div className="grid grid-cols-2 gap-1">
+                      {eventTypes.find(et => et.name === 'Period').actions.map(action => (
+                        <button
+                          key={action}
+                          onClick={() => setEventConfigData(prev => ({ ...prev, selectedAction: action }))}
+                          className={`px-2 py-2 text-xs rounded transition-colors ${
+                            eventConfigData.selectedAction === action
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {action}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Team Selection - Only show for events that require team */}
                 {eventTypes.find(et => et.name === selectedEventForConfig.eventType)?.requiresTeam && (
                   <div className="mb-4">
@@ -3034,7 +2847,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                 )}
 
                 {/* Action Selection for other events that have actions */}
-                {(eventConfigData.selectedTeam && selectedEventForConfig.eventType !== 'Shot' && eventTypes.find(et => et.name === selectedEventForConfig.eventType).actions.length > 0) && (
+                {(eventConfigData.selectedTeam && selectedEventForConfig.eventType !== 'Shot' && selectedEventForConfig.eventType !== 'Period' && eventTypes.find(et => et.name === selectedEventForConfig.eventType).actions.length > 0) && (
                   <div className="mb-4">
                     <div className="text-sm font-medium text-gray-700 mb-2">Select Action:</div>
                     <div className="grid grid-cols-2 gap-1">
