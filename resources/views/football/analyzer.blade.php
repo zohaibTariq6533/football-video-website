@@ -13,27 +13,23 @@
 </head>
 <body class="bg-gray-100 antialiased">
     <div class="min-h-screen">
-        <!-- Header -->
-        {{-- <header class="bg-white shadow-sm border-b">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center py-4">
-                    <h1 class="text-2xl font-bold text-gray-900">Football Match Analyzer</h1>
-                    <div class="text-sm text-gray-500">
-                        
-                    </div>
-                </div>
-            </div>
-        </header> --}}
 
         <!-- Main Content -->
         <main>
             <!-- React Component Mount Point -->
-            <div id="football-analyzer" data-video='@json($video)'></div>
+            <div id="football-analyzer" 
+                data-video="{{ json_encode($video) }}"
+                data-teams="{{ json_encode($teams) }}"
+                ></div>
         </main>
-        {{-- <script>
-            window.videoData = @json($video);
-        </script>
-        <script src="{{ mix('js/app.js') }}"></script>  --}}
+
+        {{-- <main>
+    <!-- React Component Mount Point -->
+    <div id="football-analyzer" 
+         data-video='@json($video)'
+         data-video-url="{{ $video}}"
+         data-video-title="{{ $video->title ?? 'Match Video' }}"></div>
+</main> --}}
     </div>
 </body>
 </html>

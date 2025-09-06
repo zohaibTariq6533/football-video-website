@@ -10,6 +10,7 @@ import FootballMatchAnalyzer from './components/FootballMatchAnalyzerEnhanced';
 // Mount the React component
 const container = document.getElementById('football-analyzer');
 if (container) {
+    
     const root = createRoot(container);
     root.render(React.createElement(FootballMatchAnalyzer));
 }

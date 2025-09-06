@@ -87,11 +87,67 @@ class GameController extends Controller
 
     }
 
-    public function videoAnalyze(string $id){
-        $video=DB::table('videos')->where('id',$id)->first();
-        // dd($video);
-        // return view('analyze-video',['video'=>$video]);
-        return view('football.analyzer',['video'=>$video]);
+    // public function videoAnalyze(string $id){
+    //     $video=DB::table('videos')->where('id',$id)->first();
+    //     // dd($video);
+    //     // return view('analyze-video',['video'=>$video]);
+    //     return view('football.analyzer',['video'=>$video]);
 
+    // }
+
+public function videoAnalyze(string $id){
+
+    $video = DB::table('videos')->where('id', $id)->first();
+
+    // get both teams for this video
+    $both_teams = DB::table('teams')->where('video_id', $id)->get();
+
+    if ($both_teams->count() < 2) {
+        return response()->json(['error' => 'Not enough teams found'], 404);
     }
+
+    $team_1 = $both_teams[0];
+    $team_2 = $both_teams[1];
+
+    // get players for each team
+    $team_1_players = DB::table('players')->where('team_id', $team_1->id)->get();
+    $team_2_players = DB::table('players')->where('team_id', $team_2->id)->get();
+
+    // format both teams
+    $teams = [
+        [
+            'id' => $team_1->id,
+            'name' => $team_1->name,
+            'color' => '#EF4444',
+            'bgColor' => 'bg-red-600',
+            'shortName' => 'Team A', // optional
+            'players' => $team_1_players->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name . ' ' . $p->last_name,
+                    'jerseyNo' => $p->jersey_number,
+                ];
+            })->values(),
+        ],
+        [
+            'id' => $team_2->id,
+            'name' => $team_2->name,
+            'color' => '#10B981',
+            'bgColor' => 'bg-green-600',
+            'shortName' => 'Team B',
+            'players' => $team_2_players->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name . ' ' . $p->last_name,
+                    'jerseyNo' => $p->jersey_number,
+                ];
+            })->values(),
+        ]
+    ];
+
+
+    // dd($teams);
+    
+    return view('football.analyzer', ['video' => $video, 'teams' => $teams]);
+}
 }
