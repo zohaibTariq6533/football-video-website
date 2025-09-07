@@ -1963,8 +1963,8 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     setVideoProgress((currentTime / duration) * 100);
   }, [currentTime, duration]);
   
-  // Handle timeline click
-  const handleTimelineClick = (e) => {
+  // Handle timeline click - only on header
+  const handleTimelineHeaderClick = (e) => {
     if (timelineRef.current) {
       const rect = timelineRef.current.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
@@ -2152,21 +2152,42 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     }
   };
   
-  // Handle event bar click
+  // Handle event bar click - for both configured and unconfigured events
   const handleEventBarClick = (marker, e) => {
     e.stopPropagation();
-    if (!marker.isConfigured) {
-      // Check if event already has an open configuration panel
-      const existingConfigIndex = openEventConfigs.findIndex(config => config.event.id === marker.id);
-      
-      if (existingConfigIndex !== -1) {
-        // Scroll to existing panel
-        const panelElement = document.getElementById(`event-config-${marker.id}`);
-        if (panelElement && eventDetailsContainerRef.current) {
-          panelElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+    
+    // Check if event already has an open configuration panel
+    const existingConfigIndex = openEventConfigs.findIndex(config => config.event.id === marker.id);
+    
+    if (existingConfigIndex !== -1) {
+      // Scroll to existing panel
+      const panelElement = document.getElementById(`event-config-${marker.id}`);
+      if (panelElement && eventDetailsContainerRef.current) {
+        panelElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    } else {
+      // If the event is configured, we are editing it
+      if (marker.isConfigured) {
+        setEditingMarkerId(marker.id);
+        
+        const team = teams.find(t => t.name === marker.team);
+        const player = team?.players.find(p => p.id === marker.player_id);
+        const assistPlayer = team?.players.find(p => p.id === marker.assist_player_id);
+        
+        setOpenEventConfigs(prev => [
+          {
+            event: marker,
+            configData: {
+              selectedTeam: team,
+              selectedPlayer: player,
+              selectedAction: marker.action,
+              selectedAssistPlayer: assistPlayer
+            }
+          },
+          ...prev
+        ]);
       } else {
-        // Open event configuration panel for this event
+        // For unconfigured events
         setOpenEventConfigs(prev => [
           {
             event: marker,
@@ -2180,10 +2201,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
           ...prev
         ]);
       }
-      
-      // Remove from current events
-      setCurrentEvents(prev => prev.filter(event => event.id !== marker.id));
     }
+    
+    // Remove from current events
+    setCurrentEvents(prev => prev.filter(event => event.id !== marker.id));
   };
   
   // Handle current event select
@@ -2849,9 +2870,9 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
               <video
                 ref={videoRef}
                 src={videoUrl}
-                className="w-full h-88 object-contain bg-black"
+                className="w-full h-86  2xl:h-122 object-contain bg-black"
                 style={{
-                  height: document.fullscreenElement ? '100vh' : '352px'
+                  // height: document.fullscreenElement ? '100vh' : '450px'
                 }}
                 onTimeUpdate={handleVideoTimeUpdate}
                 onLoadedMetadata={() => {
@@ -3118,7 +3139,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
               >
                 <div
                   ref={timelineRef}
-                  className="relative bg-gray-50 border border-gray-200 cursor-crosshair"
+                  className="relative bg-gray-50 border border-gray-200"
                   style={{ 
                     height: `${48 + (eventTypes.length * 26)}px`,
                     width: `${Math.max(800, duration * 2)}px`
@@ -3127,8 +3148,11 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                   {/* Minute-based column lines */}
                   {generateTimelineGrid()}
                   
-                  {/* Horizontal Scrollable Timeline Header */}
-                  <div className="h-8 bg-gradient-to-r from-gray-500 to-gray-600 relative">
+                  {/* Horizontal Scrollable Timeline Header - Clickable for seeking */}
+                  <div 
+                    className="h-8 bg-gradient-to-r from-gray-500 to-gray-600 relative cursor-pointer"
+                    onClick={handleTimelineHeaderClick}
+                  >
                     {/* Second markers */}
                     {Array.from({ length: duration + 1 }, (_, i) => {
                       const leftPosition = (i / duration) * 100;
@@ -3191,7 +3215,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                   {/* Active possession bar */}
                   {activePossession && possessionStartTime !== null && (
                     <div
-                      className="absolute z-15 opacity-60"
+                      className="absolute z-15 opacity-60 cursor-pointer"
                       style={{
                         left: `${(possessionStartTime / duration) * 100}%`,
                         width: `${((currentTime - possessionStartTime) / duration) * 100}%`,
@@ -3199,13 +3223,21 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                         height: '16px',
                         backgroundColor: activePossession === 'A' ? '#EF4444' : '#10B981'
                       }}
+                      onClick={(e) => {
+                        const possessionMarker = analysisMarkers.find(
+                          m => m.eventType === 'Possession' && m.time === possessionStartTime
+                        );
+                        if (possessionMarker) {
+                          handleEventBarClick(possessionMarker, e);
+                        }
+                      }}
                     /> 
                   )}
                   
                   {/* Active period bar */}
                   {activePeriod && periodStartTime !== null && (
                     <div
-                      className="absolute z-15 opacity-60"
+                      className="absolute z-15 opacity-60 cursor-pointer"
                       style={{
                         left: `${(periodStartTime / duration) * 100}%`,
                         width: `${((currentTime - periodStartTime) / duration) * 100}%`,
@@ -3213,19 +3245,35 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                         height: '16px',
                         backgroundColor: '#6B7280'
                       }}
+                      onClick={(e) => {
+                        const periodMarker = analysisMarkers.find(
+                          m => m.eventType === 'Period' && m.time === periodStartTime
+                        );
+                        if (periodMarker) {
+                          handleEventBarClick(periodMarker, e);
+                        }
+                      }}
                     />
                   )}
                   
                   {/* Active attack 3rd bar */}
                   {activeAttack3rd && attack3rdStartTime !== null && (
                     <div
-                      className="absolute z-15 opacity-60"
+                      className="absolute z-15 opacity-60 cursor-pointer"
                       style={{
                         left: `${(attack3rdStartTime / duration) * 100}%`,
                         width: `${((currentTime - attack3rdStartTime) / duration) * 100}%`,
                         top: `${48 + (eventTypes.findIndex(et => et.name === 'Attack 3rd') * 24) + 4}px`,
                         height: '16px',
                         backgroundColor: '#F97316'
+                      }}
+                      onClick={(e) => {
+                        const attack3rdMarker = analysisMarkers.find(
+                          m => m.eventType === 'Attack 3rd' && m.time === attack3rdStartTime
+                        );
+                        if (attack3rdMarker) {
+                          handleEventBarClick(attack3rdMarker, e);
+                        }
                       }}
                     />
                   )}
@@ -3277,12 +3325,6 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                       </div>
                     );
                   })}
-                  
-                  {/* Click handler overlay */}
-                  <div 
-                    className="absolute inset-0 cursor-pointer"
-                    onClick={handleTimelineClick}
-                  />
                 </div>
               </div>
             </div>
