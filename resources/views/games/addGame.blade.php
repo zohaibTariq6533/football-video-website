@@ -183,11 +183,6 @@
             }
             
             // Validate file size (100MB = 100 * 1024 * 1024 bytes)
-            const maxSize = 100 * 1024 * 1024;
-            if (file.size > maxSize) {
-                alert('File size must be less than 100MB');
-                return;
-            }
             
             selectedFile = file;
             
