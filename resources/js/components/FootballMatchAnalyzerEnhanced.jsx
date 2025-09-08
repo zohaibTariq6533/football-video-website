@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Upload, X, Save, ChevronDown, ChevronUp, BarChart3, ClipboardList, Filter, Maximize, Edit2, FastForward, Rewind, Volume2, VolumeX, ExternalLink } from 'lucide-react';
+
 const FootballMatchAnalyzer = ({ matchId = 1 }) => {
   const mount = document.getElementById("football-analyzer");
   const teamsData = JSON.parse(mount.dataset.teams);
@@ -7,6 +8,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
    
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [displayTime, setDisplayTime] = useState(0); // For display purposes only
   const [duration, setDuration] = useState(6000);
   const [videoProgress, setVideoProgress] = useState(0);
   const [analysisMarkers, setAnalysisMarkers] = useState([]);
@@ -60,6 +62,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
   const eventDetailsContainerRef = useRef(null);
   const isProcessingRef = useRef(false);
   const lastClickTimeRef = useRef({});
+  const lastUpdateTimeRef = useRef(0);
+  const animationFrameRef = useRef(null);
+  const currentTimeRef = useRef(0); // Ref to hold current time without triggering re-renders
+  const displayTimeRef = useRef(0); // Ref for display time
   
   // Event types configuration
   const eventTypes = [
@@ -143,15 +149,15 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     }
   ];
   
-  // Format time helper
-  const formatTime = (seconds) => {
+  // Format time helper - memoized for performance
+  const formatTime = useCallback((seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, []);
   
   // Toggle fullscreen
-  const toggleFullscreen = () => {
+  const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement && videoContainerRef.current) {
       videoContainerRef.current.requestFullscreen().catch(err => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`);
@@ -159,10 +165,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     } else {
       document.exitFullscreen();
     }
-  };
+  }, []);
   
-  // Handle mouse movement
-  const handleVideoMouseMove = () => {
+  // Handle mouse movement - debounced
+  const handleVideoMouseMove = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
@@ -170,7 +176,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     controlsTimeoutRef.current = setTimeout(() => {
       setShowControls(false);
     }, 3000);
-  };
+  }, []);
   
   useEffect(() => { 
     const el = document.getElementById("football-analyzer");
@@ -187,6 +193,9 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         tempVideo.onloadedmetadata = () => {
           setDuration(Math.floor(tempVideo.duration));
           setCurrentTime(0);
+          currentTimeRef.current = 0;
+          displayTimeRef.current = 0;
+          setDisplayTime(0);
           setIsPlaying(false);
           setIsVideoLoading(false);
         };
@@ -197,23 +206,29 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     } 
   }, []);
   
-  // Handle seeking
-  const seekToTime = (newTime) => {
+  // Handle seeking - optimized
+  const seekToTime = useCallback((newTime) => {
     if (videoRef.current && videoUrl) {
       isSeekingRef.current = true;
       videoRef.current.currentTime = newTime;
       setCurrentTime(Math.floor(newTime));
+      currentTimeRef.current = Math.floor(newTime);
+      displayTimeRef.current = Math.floor(newTime);
+      setDisplayTime(Math.floor(newTime));
       setVideoProgress((newTime / duration) * 100);
       setTimeout(() => {
         isSeekingRef.current = false;
       }, 100);
     } else {
       setCurrentTime(Math.floor(newTime));
+      currentTimeRef.current = Math.floor(newTime);
+      displayTimeRef.current = Math.floor(newTime);
+      setDisplayTime(Math.floor(newTime));
     }
-  };
+  }, [videoUrl, duration]);
   
   // Handle volume change
-  const handleVolumeChange = (newVolume) => {
+  const handleVolumeChange = useCallback((newVolume) => {
     setVolume(newVolume);
     if (videoRef.current) {
       videoRef.current.volume = newVolume;
@@ -223,10 +238,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     } else {
       setIsMuted(false);
     }
-  };
+  }, []);
   
   // Toggle mute
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (videoRef.current) {
       if (isMuted) {
         videoRef.current.volume = volume;
@@ -236,7 +251,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         setIsMuted(true);
       }
     }
-  };
+  }, [isMuted, volume]);
   
   // Sync video with timeline
   useEffect(() => {
@@ -259,26 +274,40 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     }
   }, [isPlaying, videoUrl, playbackSpeed, isMuted, volume]);
   
-  // Handle video time update
-  const handleVideoTimeUpdate = () => {
+  // Handle video time update - optimized with requestAnimationFrame and throttled display updates
+  const handleVideoTimeUpdate = useCallback(() => {
     if (videoRef.current && !isSeekingRef.current) {
-      const newTime = videoRef.current.currentTime;
-      setCurrentTime(Math.floor(newTime));
-      setVideoProgress((newTime / duration) * 100);
+      // Update the ref immediately for accurate time tracking
+      currentTimeRef.current = Math.floor(videoRef.current.currentTime);
+      
+      // Only update the display state at a throttled rate (5 times per second)
+      const now = Date.now();
+      if (now - lastUpdateTimeRef.current > 200) { // Update every 200ms
+        lastUpdateTimeRef.current = now;
+        setDisplayTime(currentTimeRef.current);
+        setVideoProgress((currentTimeRef.current / duration) * 100);
+      }
     }
-  };
+  }, [duration]);
   
   // Play/pause functionality
   useEffect(() => {
     if (isPlaying && !videoUrl) {
       intervalRef.current = setInterval(() => {
-        setCurrentTime(prev => {
-          if (prev >= duration) {
-            setIsPlaying(false);
-            return duration;
-          }
-          return prev + 1;
-        });
+        const newTime = currentTimeRef.current + 1;
+        currentTimeRef.current = newTime;
+        
+        // Update display time at throttled rate
+        const now = Date.now();
+        if (now - lastUpdateTimeRef.current > 200) {
+          lastUpdateTimeRef.current = now;
+          setDisplayTime(newTime);
+          setVideoProgress((newTime / duration) * 100);
+        }
+        
+        if (newTime >= duration) {
+          setIsPlaying(false);
+        }
       }, 1000);
     } else {
       clearInterval(intervalRef.current);
@@ -292,7 +321,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
   }, [currentTime, duration]);
   
   // Handle timeline click - only on header
-  const handleTimelineHeaderClick = (e) => {
+  const handleTimelineHeaderClick = useCallback((e) => {
     if (timelineRef.current) {
       const rect = timelineRef.current.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
@@ -300,12 +329,12 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       const newTime = Math.floor(percentage * duration);
       seekToTime(newTime);
     }
-  };
+  }, [duration, seekToTime]);
   
   // Handle possession toggle
-  const handlePossessionToggle = () => {
+  const handlePossessionToggle = useCallback(() => {
     if (activePossession) {
-      const endTime = currentTime;
+      const endTime = currentTimeRef.current;
       const startTime = possessionStartTime;
       const team = teams.find(t => t.shortName === `Team ${activePossession}`);
       
@@ -330,12 +359,12 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       setActivePossessionTeam(activePossession === 'A' ? 'B' : 'A');
     } else {
       setActivePossession(activePossessionTeam);
-      setPossessionStartTime(currentTime);
+      setPossessionStartTime(currentTimeRef.current);
       
       const transitionMarker = {
         id: Date.now() + 1,
-        time: Math.max(0, currentTime - 2),
-        endTime: Math.min(duration, currentTime + 2),
+        time: Math.max(0, currentTimeRef.current - 2),
+        endTime: Math.min(duration, currentTimeRef.current + 2),
         eventType: 'Transition',
         team: `Team ${activePossessionTeam}`,
         player_id: null,
@@ -349,12 +378,12 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       
       setAnalysisMarkers(prev => [...prev, transitionMarker]);
     }
-  };
+  }, [activePossession, possessionStartTime, activePossessionTeam, duration, teams]);
   
   // Handle period toggle
-  const handlePeriodToggle = () => {
+  const handlePeriodToggle = useCallback(() => {
     if (activePeriod) {
-      const endTime = currentTime;
+      const endTime = currentTimeRef.current;
       const startTime = periodStartTime;
       
       const periodMarker = {
@@ -377,14 +406,14 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       setPeriodStartTime(null);
     } else {
       setActivePeriod(true);
-      setPeriodStartTime(currentTime);
+      setPeriodStartTime(currentTimeRef.current);
     }
-  };
+  }, [activePeriod, periodStartTime]);
   
   // Handle attack 3rd toggle
-  const handleAttack3rdToggle = () => {
+  const handleAttack3rdToggle = useCallback(() => {
     if (activeAttack3rd) {
-      const endTime = currentTime;
+      const endTime = currentTimeRef.current;
       const startTime = attack3rdStartTime;
       
       const attack3rdMarker = {
@@ -408,12 +437,12 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       setAttack3rdStartTime(null);
     } else {
       setActiveAttack3rd(true);
-      setAttack3rdStartTime(currentTime);
+      setAttack3rdStartTime(currentTimeRef.current);
     }
-  };
+  }, [activeAttack3rd, attack3rdStartTime]);
   
   // Add event to timeline
-  const addEventToTimeline = (eventTypeName) => {
+  const addEventToTimeline = useCallback((eventTypeName) => {
     // Prevent rapid button clicks using a more precise timing mechanism
     const now = Date.now();
     const lastClickTime = lastClickTimeRef.current[eventTypeName] || 0;
@@ -438,8 +467,8 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     }
     
     const eventConfig = eventTypes.find(et => et.name === eventTypeName);
-    const startTime = Math.max(0, currentTime - 4);
-    const endTime = Math.min(duration, currentTime + 7);
+    const startTime = Math.max(0, currentTimeRef.current - 4);
+    const endTime = Math.min(duration, currentTimeRef.current + 7);
     const newMarker = {
       id: Date.now(),
       time: startTime,
@@ -478,10 +507,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         ...prev
       ]);
     }
-  };
+  }, [currentTimeRef, duration, handlePossessionToggle, handlePeriodToggle, handleAttack3rdToggle, openEventConfigs]);
   
   // Handle event bar click - for both configured and unconfigured events
-  const handleEventBarClick = (marker, e) => {
+  const handleEventBarClick = useCallback((marker, e) => {
     e.stopPropagation();
     
     // Check if event already has an open configuration panel
@@ -533,10 +562,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     
     // Remove from current events
     setCurrentEvents(prev => prev.filter(event => event.id !== marker.id));
-  };
+  }, [openEventConfigs, teams]);
   
   // Handle current event select
-  const handleCurrentEventSelect = (marker) => {
+  const handleCurrentEventSelect = useCallback((marker) => {
     // Check if event already has an open configuration panel
     const existingConfigIndex = openEventConfigs.findIndex(config => config.event.id === marker.id);
     
@@ -565,10 +594,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     // Remove from current events
     setCurrentEvents(prev => prev.filter(event => event.id !== marker.id));
     setShowCurrentEventsDropdown(false);
-  };
+  }, [openEventConfigs]);
   
   // Edit event
-  const handleEditEvent = (marker) => {
+  const handleEditEvent = useCallback((marker) => {
     setEditingMarkerId(marker.id);
     
     const team = teams.find(t => t.name === marker.team);
@@ -599,10 +628,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         ...prev
       ]);
     }
-  };
+  }, [openEventConfigs, teams]);
   
   // Update config data for a specific event
-  const updateEventConfigData = (eventId, newData) => {
+  const updateEventConfigData = useCallback((eventId, newData) => {
     setOpenEventConfigs(prev => 
       prev.map(config => 
         config.event.id === eventId 
@@ -610,10 +639,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
           : config
       )
     );
-  };
+  }, []);
   
   // Save configured event
-  const saveConfiguredEvent = (eventId) => {
+  const saveConfiguredEvent = useCallback((eventId) => {
     const eventConfigIndex = openEventConfigs.findIndex(config => config.event.id === eventId);
     if (eventConfigIndex === -1) return;
     
@@ -649,10 +678,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     // Remove from open event configs
     setOpenEventConfigs(prev => prev.filter(config => config.event.id !== eventId));
     setEditingMarkerId(null);
-  };
+  }, [openEventConfigs]);
   
   // Cancel event config
-  const cancelEventConfig = (eventId) => {
+  const cancelEventConfig = useCallback((eventId) => {
     const eventConfigIndex = openEventConfigs.findIndex(config => config.event.id === eventId);
     if (eventConfigIndex === -1) return;
     
@@ -673,10 +702,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     // Remove from open event configs
     setOpenEventConfigs(prev => prev.filter(config => config.event.id !== eventId));
     setEditingMarkerId(null);
-  };
+  }, [openEventConfigs, editingMarkerId]);
   
   // Remove marker
-  const removeMarker = (markerId) => {
+  const removeMarker = useCallback((markerId) => {
     setAnalysisMarkers(prev => prev.filter(marker => marker.id !== markerId));
     setCurrentEvents(prev => prev.filter(event => event.id !== markerId));
     setOpenEventConfigs(prev => prev.filter(config => config.event.id !== markerId));
@@ -685,7 +714,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       setSelectedEventForConfig(null);
       setEventConfigData({});
     }
-  };
+  }, [selectedEventForConfig]);
   
   // Keyboard event handler
   useEffect(() => {
@@ -711,10 +740,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     };
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [currentTime, duration, activePossession, activePeriod, activeAttack3rd, possessionStartTime, periodStartTime, attack3rdStartTime, activePossessionTeam]);
+  }, [addEventToTimeline]);
   
   // Generate timeline grid
-  const generateTimelineGrid = () => {
+  const generateTimelineGrid = useCallback(() => {
     const elements = [];
     for (let i = 60; i <= duration; i += 60) {
       const leftPosition = (i / duration) * 100;
@@ -727,7 +756,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       );
     }
     return elements;
-  };
+  }, [duration]);
   
   // Auto-scroll timeline when current time indicator is near edges
   useEffect(() => {
@@ -735,7 +764,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     
     const container = timelineContainerRef.current;
     const timeline = timelineRef.current;
-    const indicatorPosition = (currentTime / duration) * timeline.offsetWidth;
+    const indicatorPosition = (currentTimeRef.current / duration) * timeline.offsetWidth;
     const containerWidth = container.offsetWidth;
     const scrollLeft = container.scrollLeft;
     
@@ -751,10 +780,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         behavior: 'smooth'
       });
     }
-  }, [currentTime, duration]);
+  }, [displayTime, duration]); // Use displayTime instead of currentTime to reduce re-renders
   
   // Load stats data
-  const loadStatsData = async () => {
+  const loadStatsData = useCallback(async () => {
     if (!analysisId) return;
     
     setIsLoadingStats(true);
@@ -778,10 +807,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     } finally {
       setIsLoadingStats(false);
     }
-  };
+  }, [analysisId]);
   
   // Save analysis data
-  const saveAllAnalysis = async () => {
+  const saveAllAnalysis = useCallback(async () => {
     setIsSaving(true);
     try {
       const analysisData = {
@@ -813,7 +842,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [analysisMarkers, videoData, matchId]);
   
   // Cleanup
   useEffect(() => {
@@ -824,18 +853,21 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, []);
   
   // Get sorted markers
-  const getSortedMarkers = () => {
+  const getSortedMarkers = useCallback(() => {
     return [...analysisMarkers]
       .filter(marker => marker.isConfigured)
       .sort((a, b) => b.time - a.time);
-  };
+  }, [analysisMarkers]);
   
-  // Stats Modal Component
-  const StatsModal = () => (
+  // Stats Modal Component - memoized
+  const StatsModal = memo(() => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-11/12 max-w-4xl max-h-90vh overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
@@ -916,10 +948,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         )}
       </div>
     </div>
-  );
+  ));
   
-  // Event Configuration Panel Component
-  const EventConfigPanel = ({ eventConfig, onClose }) => {
+  // Event Configuration Panel Component - memoized
+  const EventConfigPanel = memo(({ eventConfig, onClose }) => {
     const { event, configData } = eventConfig;
     const eventTypeConfig = eventTypes.find(et => et.name === event.eventType);
     
@@ -972,7 +1004,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
           {(eventTypeConfig.requiresTeam || event.eventType === 'Shot') && (
             <div className="mb-3">
               <div className="text-sm font-medium text-gray-700 mb-2">
-                Select Team {event.eventType === 'Shot' ? '(Optional)' : ''}:
+                Select Team {event.eventType === 'Shot'}:
               </div>
               <div className="flex gap-2">
                 {teams.map(team => (
@@ -1048,7 +1080,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
               <div className="text-sm font-medium text-gray-700 mb-2">
                 Select Player {event.eventType === 'Shot' ? '(Optional)' : ''}:
               </div>
-              <div className="grid grid-cols-3 gap-1 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded">
+              <div className="grid grid-cols-3 gap-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded">
                 {/* Add "None" option for Shot events */}
                 {event.eventType === 'Shot' && (
                   <button
@@ -1090,7 +1122,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
               <div className="text-sm font-medium text-gray-700 mb-2">
                 Select Assist Player (Optional):
               </div>
-              <div className="grid grid-cols-3 gap-1 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded">
+              <div className="grid grid-cols-3 gap-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded">
                 {/* Add "None" option */}
                 <button
                   onClick={() => updateEventConfigData(event.id, { selectedAssistPlayer: null })}
@@ -1148,7 +1180,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         </div>
       </div>
     );
-  };
+  });
   
   return (
     <div className="w-full max-w-full mx-auto bg-gray-100 min-h-screen">
@@ -1206,7 +1238,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                 onLoadedMetadata={() => {
                   if (videoRef.current) {
                     setDuration(Math.floor(videoRef.current.duration));
-                    setCurrentTime(videoRef.current.currentTime);
+                    setCurrentTime(0);
+                    currentTimeRef.current = 0;
+                    displayTimeRef.current = 0;
+                    setDisplayTime(0);
                     setIsVideoLoading(false);
                     videoRef.current.volume = volume;
                   }
@@ -1257,7 +1292,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
             {videoTitle && (
               <div className="text-sm font-semibold mb-1">{videoTitle}</div>
             )}
-            <div className="text-lg font-semibold">{formatTime(currentTime)} / {formatTime(duration)}</div>
+            <div className="text-lg font-semibold">{formatTime(displayTime)} / {formatTime(duration)}</div>
             {activePossession && (
               <div className="text-sm mt-1">
                 <span className={`px-2 py-1 rounded text-xs ${activePossession === 'A' ? 'bg-red-600' : 'bg-green-600'}`}>
@@ -1338,7 +1373,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
               <div className="flex items-center gap-4 bg-black bg-opacity-75 px-3.5 py-2 rounded-full">
                 <button
                   onClick={() => {
-                    const newTime = Math.max(0, currentTime - 10);
+                    const newTime = Math.max(0, currentTimeRef.current - 10);
                     seekToTime(newTime);
                   }}
                   className="p-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
@@ -1355,7 +1390,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                 </button>
                 <button
                   onClick={() => {
-                    const newTime = Math.min(duration, currentTime + 10);
+                    const newTime = Math.min(duration, currentTimeRef.current + 10);
                     seekToTime(newTime);
                   }}
                   className="p-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
@@ -1520,7 +1555,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                     {/* Current time indicator */}
                     <div
                       className="absolute top-0 bottom-0 w-1 bg-white shadow-lg z-30 transition-all duration-100"
-                      style={{ left: `${(currentTime / duration) * 100}%` }}
+                      style={{ left: `${(currentTimeRef.current / duration) * 100}%` }}
                     >
                       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
                         <div className="w-4 h-4 bg-white border-2 border-purple-600 rounded-full shadow-lg"></div>
@@ -1546,7 +1581,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                       className="absolute z-15 opacity-60 cursor-pointer"
                       style={{
                         left: `${(possessionStartTime / duration) * 100}%`,
-                        width: `${((currentTime - possessionStartTime) / duration) * 100}%`,
+                        width: `${((currentTimeRef.current - possessionStartTime) / duration) * 100}%`,
                         top: `${48 + (eventTypes.findIndex(et => et.name === 'Possession') * 24) + 4}px`,
                         height: '16px',
                         backgroundColor: activePossession === 'A' ? '#EF4444' : '#10B981'
@@ -1568,7 +1603,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                       className="absolute z-15 opacity-60 cursor-pointer"
                       style={{
                         left: `${(periodStartTime / duration) * 100}%`,
-                        width: `${((currentTime - periodStartTime) / duration) * 100}%`,
+                        width: `${((currentTimeRef.current - periodStartTime) / duration) * 100}%`,
                         top: `${48 + (eventTypes.findIndex(et => et.name === 'Period') * 24) + 4}px`,
                         height: '16px',
                         backgroundColor: '#6B7280'
@@ -1590,7 +1625,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                       className="absolute z-15 opacity-60 cursor-pointer"
                       style={{
                         left: `${(attack3rdStartTime / duration) * 100}%`,
-                        width: `${((currentTime - attack3rdStartTime) / duration) * 100}%`,
+                        width: `${((currentTimeRef.current - attack3rdStartTime) / duration) * 100}%`,
                         top: `${48 + (eventTypes.findIndex(et => et.name === 'Attack 3rd') * 24) + 4}px`,
                         height: '16px',
                         backgroundColor: '#F97316'
@@ -1658,7 +1693,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
             </div>
             
             {/* Unconfigured Events Section */}
-            {analysisMarkers.filter(marker => !marker.isConfigured).length > 0 && (
+            {/* {analysisMarkers.filter(marker => !marker.isConfigured).length > 0 && (
               <div className="bg-yellow-50 border-t-2 border-b-2 border-yellow-200 p-4 mt-2">
                 <h4 className="text-sm font-semibold text-yellow-800 mb-2">
                   Unconfigured Events (Click to configure):
@@ -1720,7 +1755,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
           </div>
         </div>
         
@@ -1823,7 +1858,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
             className="overflow-y-auto p-4"
           >
             {/* Current Events Dropdown */}
-            {/* {currentEvents.length > 0 && (
+            {currentEvents.length > 0 && (
               <div className="bg-blue-50 border-t-2 border-b-2 border-blue-200 p-4 mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-sm font-semibold text-blue-800">
@@ -1870,7 +1905,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                   </div>
                 )}
               </div>
-            )} */}
+            )}
             
             {/* Open Event Configuration Panels */}
             {openEventConfigs.length > 0 ? (

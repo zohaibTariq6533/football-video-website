@@ -30,7 +30,7 @@ class GameController extends Controller
     {
         $validated = $req->validate([
             'title' => 'required|string|max:255',
-            'video_url' => 'required|file|mimetypes:video/*|max:51200', //url
+            'video_url' => 'required|file|mimetypes:video/*', //url
 
         ]);
         $path = $req->file('video_url')->store('videos', 'public');
