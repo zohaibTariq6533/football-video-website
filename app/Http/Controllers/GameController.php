@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PhpParser\Node\Expr\FuncCall;
 
 use function Laravel\Prompts\table;
@@ -14,8 +15,9 @@ class GameController extends Controller
 {
     public function gamePage()
     {
-        return view('games/addGame');
+        return view('games.addGame');
     }
+
     public function  allGames()
     {   if(Auth::user()->role=='Coache'){
         $userID = Auth::id();
@@ -24,30 +26,156 @@ class GameController extends Controller
     else{
         $gameData = DB::table('videos')->get();
     }
-        return view('games/adminGames', ['game' => $gameData]);
+        return view('games.adminGames', ['game' => $gameData]);
     }
+
+    // public function createGame(Request $req)
+    // {
+    //     $validated = $req->validate([
+    //         'title' => 'required|string|max:255',
+    //         'video_url' => 'required|file|mimetypes:video/*', //url
+
+    //     ]);
+    //     $path = $req->file('video_url')->store('videos', 'public');
+
+    //     // 3. Generate the public URL
+    //     $videoUrl = asset('storage/' . $path);
+
+    //     $videoSaved = DB::table('videos')->insertGetId([
+    //         'user_id' => Auth::id(),
+    //         'title' => $req->title,
+    //         'video_url' => $videoUrl,
+    //         'created_at' => Carbon::now(),
+    //         'updated_at' => Carbon::now()
+    //     ]);
+    //     $videoData = Db::table('videos')->where('id', $videoSaved)->first();
+    //     return redirect()->route('teamPage', ['video_id' => $videoSaved, 'videoData' => $videoData]);
+    // }
+
     public function createGame(Request $req)
-    {
-        $validated = $req->validate([
-            'title' => 'required|string|max:255',
-            'video_url' => 'required|file|mimetypes:video/*', //url
+{
+    $validated = $req->validate([
+        'title' => 'required|string|max:255',
+        'video_url' => 'required|file|mimetypes:video/*',
+    ]);
 
+    $file = $req->file('video_url');
+    $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+    $path = 'videos/' . $filename;
+    
+    // Use streaming to avoid memory issues
+    $stream = fopen($file->getRealPath(), 'r+');
+    Storage::disk('public')->put($path, $stream);
+    fclose($stream);
+
+    // Generate the public URL
+    $videoUrl = asset('storage/' . $path);
+
+    // Save to database
+    $videoSaved = DB::table('videos')->insertGetId([
+        'user_id' => Auth::id(),
+        'title' => $req->title,
+        'video_url' => $videoUrl,
+        'created_at' => Carbon::now(),
+        'updated_at' => Carbon::now()
+    ]);
+
+    $videoData = DB::table('videos')->where('id', $videoSaved)->first();
+
+    return redirect()->route('teamPage', ['video_id' => $videoSaved, 'videoData' => $videoData]);
+}
+
+public function uploadChunk(Request $req)
+{
+    try {
+        $req->validate([
+            'file' => 'required|file',
+            'file_id' => 'required|string',
+            'chunk_index' => 'required|integer',
+            'total_chunks' => 'required|integer',
         ]);
-        $path = $req->file('video_url')->store('videos', 'public');
 
-        // 3. Generate the public URL
-        $videoUrl = asset('storage/' . $path);
+        $file = $req->file('file');
+        $fileId = $req->input('file_id');
+        $chunkIndex = $req->input('chunk_index');
+        $totalChunks = $req->input('total_chunks');
 
+        // Create temporary directory for chunks
+        $tempDir = storage_path('app/temp/uploads/' . $fileId);
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        // Store chunk
+        $chunkPath = $tempDir . '/' . $chunkIndex;
+        move_uploaded_file($file->getRealPath(), $chunkPath);
+
+        return response()->json(['success' => true]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
+public function completeUpload(Request $req)
+{
+    try {
+        $req->validate([
+            'file_id' => 'required|string',
+            'title' => 'required|string|max:255',
+            'original_name' => 'required|string',
+            'total_chunks' => 'required|integer',
+        ]);
+
+        $fileId = $req->input('file_id');
+        $title = $req->input('title');
+        $originalName = $req->input('original_name');
+        $totalChunks = $req->input('total_chunks');
+
+        $tempDir = storage_path('app/temp/uploads/' . $fileId);
+        $finalPath = storage_path('app/public/videos/' . uniqid() . '.' . pathinfo($originalName, PATHINFO_EXTENSION));
+
+        // Merge chunks
+        $finalFile = fopen($finalPath, 'w');
+        for ($i = 0; $i < $totalChunks; $i++) {
+            $chunkPath = $tempDir . '/' . $i;
+            if (file_exists($chunkPath)) {
+                $chunk = fopen($chunkPath, 'r');
+                stream_copy_to_stream($chunk, $finalFile);
+                fclose($chunk);
+                unlink($chunkPath); // Delete chunk after merging
+            }
+        }
+        fclose($finalFile);
+
+        // Clean up temp directory
+        rmdir($tempDir);
+
+        // Generate public URL
+        $videoUrl = asset('storage/videos/' . basename($finalPath));
+
+        // Save to database
         $videoSaved = DB::table('videos')->insertGetId([
             'user_id' => Auth::id(),
-            'title' => $req->title,
+            'title' => $title,
             'video_url' => $videoUrl,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now()
         ]);
-        $videoData = Db::table('videos')->where('id', $videoSaved)->first();
+
+        $videoData = DB::table('videos')->where('id', $videoSaved)->first();
+
         return redirect()->route('teamPage', ['video_id' => $videoSaved, 'videoData' => $videoData]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
     }
+}
+
     public function gameCreatedPage(string $video_id)
     {
         $videoData = DB::table('videos')->where('id', $video_id)->first();

@@ -28,6 +28,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [statsData, setStatsData] = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false); // New state for fullscreen
   
   // New states for event configuration
   const [selectedEventForConfig, setSelectedEventForConfig] = useState(null);
@@ -75,7 +76,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
       actions: ['First Half', 'Second Half', 'Extra Time', 'Penalty Kicks', 'Time-out'],
       isTimeBased: true,
-      key: 'i',
+      key: 'p',
       requiresTeam: false
     },
     { 
@@ -84,7 +85,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
       actions: [],
       isTimeBased: true,
-      key: 'p',
+      key: 'q',
       requiresTeam: true
     },
     { 
@@ -100,7 +101,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       color: '#8B5CF6', 
       bgColor: 'bg-gradient-to-b from-[#FE5E3A] via-[#FC404E] to-[#FD337F]',
       actions: ['Kick off', 'Free Kick', 'Throw In', 'Penalty Kick', 'Goal Kick', 'Corner Kick'],
-      key: 't',
+      key: 'w',
       requiresTeam: true
     },
     { 
@@ -129,7 +130,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       actions: ['Yellow Card', 'Red Card'],
       key: 'f',
       requiresTeam: true,
-      requiresPlayer: true
+      requiresPlayer: false // Changed to false to make player optional
     },
     { 
       name: 'Offside', 
@@ -649,8 +650,8 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     const { event, configData } = openEventConfigs[eventConfigIndex];
     const eventTypeConfig = eventTypes.find(et => et.name === event.eventType);
     
-    // For Shot events, team is optional
-    if (eventTypeConfig.requiresTeam && !configData.selectedTeam && event.eventType !== 'Shot') {
+    // For Shot and Foul events, team is optional
+    if (eventTypeConfig.requiresTeam && !configData.selectedTeam && event.eventType !== 'Shot' && event.eventType !== 'Foul') {
       alert('Please select a team');
       return;
     }
@@ -1001,10 +1002,10 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
           )}
           
           {/* Team Selection - Show for all events that might need it */}
-          {(eventTypeConfig.requiresTeam || event.eventType === 'Shot') && (
+          {(eventTypeConfig.requiresTeam || event.eventType === 'Shot' || event.eventType === 'Foul') && (
             <div className="mb-3">
               <div className="text-sm font-medium text-gray-700 mb-2">
-                Select Team {event.eventType === 'Shot'}:
+                Select Team {event.eventType === 'Shot' || event.eventType === 'Foul' ? '(Optional)' : ''}:
               </div>
               <div className="flex gap-2">
                 {teams.map(team => (
@@ -1052,8 +1053,30 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
             </div>
           )}
           
+          {/* Action Selection for Foul events */}
+          {(event.eventType === 'Foul' && configData.selectedTeam) && (
+            <div className="mb-3">
+              <div className="text-sm font-medium text-gray-700 mb-2">Card Type:</div>
+              <div className="grid grid-cols-2 gap-1">
+                {['Yellow Card', 'Red Card'].map(action => (
+                  <button
+                    key={action}
+                    onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
+                    className={`px-2 py-2 text-xs rounded transition-colors ${
+                      configData.selectedAction === action
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {action}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {/* Action Selection for other events that have actions */}
-          {(configData.selectedTeam && event.eventType !== 'Shot' && event.eventType !== 'Period' && eventTypeConfig.actions.length > 0) && (
+          {(configData.selectedTeam && event.eventType !== 'Shot' && event.eventType !== 'Period' && event.eventType !== 'Foul' && eventTypeConfig.actions.length > 0) && (
             <div className="mb-3">
               <div className="text-sm font-medium text-gray-700 mb-2">Select Action:</div>
               <div className="grid grid-cols-2 gap-1">
@@ -1075,14 +1098,14 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
           )}
           
           {/* Player Selection for events that require player */}
-          {(eventTypeConfig.requiresPlayer || event.eventType === 'Shot') && configData.selectedTeam && (
+          {(eventTypeConfig.requiresPlayer || event.eventType === 'Shot' || event.eventType === 'Foul') && configData.selectedTeam && (
             <div className="mb-3">
               <div className="text-sm font-medium text-gray-700 mb-2">
-                Select Player {event.eventType === 'Shot' ? '(Optional)' : ''}:
+                Select Player {event.eventType === 'Shot' || event.eventType === 'Foul' ? '(Optional)' : ''}:
               </div>
               <div className="grid grid-cols-3 gap-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded">
-                {/* Add "None" option for Shot events */}
-                {event.eventType === 'Shot' && (
+                {/* Add "None" option for Shot and Foul events */}
+                {(event.eventType === 'Shot' || event.eventType === 'Foul') && (
                   <button
                     onClick={() => updateEventConfigData(event.id, { selectedPlayer: null })}
                     className={`p-2 rounded text-xs font-medium transition-colors ${
@@ -1163,8 +1186,8 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
             <button
               onClick={() => saveConfiguredEvent(event.id)}
               disabled={
-                (eventTypeConfig.requiresTeam && !configData.selectedTeam && event.eventType !== 'Shot') ||
-                (eventTypeConfig.requiresPlayer && !configData.selectedPlayer && event.eventType !== 'Shot')
+                (eventTypeConfig.requiresTeam && !configData.selectedTeam && event.eventType !== 'Shot' && event.eventType !== 'Foul') ||
+                (eventTypeConfig.requiresPlayer && !configData.selectedPlayer && event.eventType !== 'Shot' && event.eventType !== 'Foul')
               }
               className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -1181,6 +1204,19 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       </div>
     );
   });
+  
+  // Handle fullscreen change event
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
   
   return (
     <div className="w-full max-w-full mx-auto bg-gray-100 min-h-screen">
@@ -1230,9 +1266,9 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
               <video
                 ref={videoRef}
                 src={videoUrl}
-                className="w-full h-86  2xl:h-122 object-contain bg-black"
+                className="w-full h-full object-contain bg-black"
                 style={{
-                  // height: document.fullscreenElement ? '100vh' : '450px'
+                  height: isFullscreen ? '100vh' : '450px'
                 }}
                 onTimeUpdate={handleVideoTimeUpdate}
                 onLoadedMetadata={() => {
@@ -1252,28 +1288,30 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                 preload="auto"
               />
               
-              {/* Video Timeline */}
-              <div className="absolute bottom-4 left-0 right-0 px-4">
-                <div 
-                  className="h-1 bg-gray-600 bg-opacity-50 rounded-full cursor-pointer relative"
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const percentage = clickX / rect.width;
-                    const newTime = percentage * duration;
-                    seekToTime(newTime);
-                  }}
-                >
+              {/* Video Timeline - Hide in fullscreen */}
+              {!isFullscreen && (
+                <div className="absolute bottom-4 left-0 right-0 px-4">
                   <div 
-                    className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
-                    style={{ width: `${videoProgress}%` }}
-                  />
-                  <div 
-                    className="absolute top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg"
-                    style={{ left: `${videoProgress}%` }}
-                  />
+                    className="h-1 bg-gray-600 bg-opacity-50 rounded-full cursor-pointer relative"
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const clickX = e.clientX - rect.left;
+                      const percentage = clickX / rect.width;
+                      const newTime = percentage * duration;
+                      seekToTime(newTime);
+                    }}
+                  >
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-blue-500 rounded-full"
+                      style={{ width: `${videoProgress}%` }}
+                    />
+                    <div 
+                      className="absolute top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg"
+                      style={{ left: `${videoProgress}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           ) : (
             <div className="h-88 bg-gradient-to-br from-blue-900 to-green-900 flex items-center justify-center">
@@ -1321,49 +1359,57 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
             onClick={toggleFullscreen}
             className="absolute bottom-10 right-4 p-2 bg-black bg-opacity-75 text-white rounded-lg hover:bg-opacity-90 transition-all"
           >
-            <Maximize size={20} />
+            {isFullscreen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+              </svg>
+            ) : (
+              <Maximize size={20} />
+            )}
           </button>
           
-          {/* Save button overlay */}
-          <div className="absolute top-4 right-4">
-            {/* Stat buttons */}
-            <div className="flex flex-row mb-4">
-              <button
-                onClick={loadStatsData}
-                disabled={!analysisId || isLoadingStats}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-l-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="View Statistics"
-              >
-                <BarChart3 size={18} />
-              </button>
-              <button
-                onClick={() => window.open(`/analysis/${analysisId}/report`, '_blank')}
-                disabled={!analysisId}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="View Detailed Report"
-              >
-                <ClipboardList size={18} />
-              </button>
-              <button
-                onClick={() => window.open(`/analysis/${analysisId}/export`, '_blank')}
-                disabled={!analysisId}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Export Data"
-              >
-                <ExternalLink size={18} />
-              </button>
+          {/* Save button overlay - Hide in fullscreen */}
+          {!isFullscreen && (
+            <div className="absolute top-4 right-4">
+              {/* Stat buttons */}
+              <div className="flex flex-row mb-4">
+                <button
+                  onClick={loadStatsData}
+                  disabled={!analysisId || isLoadingStats}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-l-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="View Statistics"
+                >
+                  <BarChart3 size={18} />
+                </button>
+                <button
+                  onClick={() => window.open(`/analysis/${analysisId}/report`, '_blank')}
+                  disabled={!analysisId}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="View Detailed Report"
+                >
+                  <ClipboardList size={18} />
+                </button>
+                <button
+                  onClick={() => window.open(`/analysis/${analysisId}/export`, '_blank')}
+                  disabled={!analysisId}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Export Data"
+                >
+                  <ExternalLink size={18} />
+                </button>
+              </div>
+              <div className="flex flex-row-reverse">
+                <button
+                  onClick={saveAllAnalysis}
+                  disabled={isSaving || analysisMarkers.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save size={18} />
+                  {isSaving ? 'Saving...' : 'Save'}
+                </button>
+              </div>
             </div>
-            <div className="flex flex-row-reverse">
-              <button
-                onClick={saveAllAnalysis}
-                disabled={isSaving || analysisMarkers.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save size={18} />
-                {isSaving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
+          )}
           
           {/* Overlay Video Controls */}
           {videoUrl && (
@@ -1691,71 +1737,6 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                 </div>
               </div>
             </div>
-            
-            {/* Unconfigured Events Section */}
-            {/* {analysisMarkers.filter(marker => !marker.isConfigured).length > 0 && (
-              <div className="bg-yellow-50 border-t-2 border-b-2 border-yellow-200 p-4 mt-2">
-                <h4 className="text-sm font-semibold text-yellow-800 mb-2">
-                  Unconfigured Events (Click to configure):
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {analysisMarkers.filter(marker => !marker.isConfigured).map(marker => (
-                    <div 
-                      key={marker.id} 
-                      className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-yellow-300 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
-                      onClick={() => {
-                        // Check if event already has an open configuration panel
-                        const existingConfigIndex = openEventConfigs.findIndex(config => config.event.id === marker.id);
-                        
-                        if (existingConfigIndex !== -1) {
-                          // Scroll to existing panel
-                          const panelElement = document.getElementById(`event-config-${marker.id}`);
-                          if (panelElement && eventDetailsContainerRef.current) {
-                            panelElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                          }
-                        } else {
-                          // Open event configuration panel for this event
-                          setOpenEventConfigs(prev => [
-                            {
-                              event: marker,
-                              configData: {
-                                selectedTeam: null,
-                                selectedPlayer: null,
-                                selectedAction: null,
-                                selectedAssistPlayer: null
-                              }
-                            },
-                            ...prev
-                          ]);
-                        }
-                        
-                        // Remove from current events
-                        setCurrentEvents(prev => prev.filter(event => event.id !== marker.id));
-                      }}
-                    >
-                      <div
-                        className="w-3 h-3 rounded-sm"
-                        style={{ backgroundColor: marker.color }}
-                      />
-                      <span className="text-sm font-medium">{marker.eventType}</span>
-                      <span className="text-xs text-gray-500">
-                        {formatTime(marker.time)} - {formatTime(marker.endTime)}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeMarker(marker.id);
-                        }}
-                        className="w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                        style={{ fontSize: '10px' }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )} */}
           </div>
         </div>
         
@@ -1933,14 +1914,14 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
                 </div>
                 <div className="text-sm text-blue-600 bg-blue-50 rounded p-3">
                   <strong>Keyboard Shortcuts:</strong>
-                  <br />I: Period | P: Possession | T: Set Play
+                  <br />P: Period | Q: Possession | W: Set Play
                   <br />A: Attack 3rd | S: Shot | F: Foul | O: Offside
                   <br />R: Transition | D: Aerial Duel | Space: Play/Pause
                 </div>
                 <div className="text-sm text-green-600 bg-green-50 rounded p-3 mt-3">
                   <strong>Event Types:</strong>
                   <br />• <strong>Team-based:</strong> Possession, Attack 3rd, Offside, Aerial Duel
-                  <br />• <strong>Player-based:</strong> Shot (Optional), Foul
+                  <br />• <strong>Player-based:</strong> Shot (Optional), Foul (Optional)
                   <br />• <strong>Match-based:</strong> Period, Transition
                 </div>
               </div>
@@ -1951,4 +1932,5 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     </div>
   );
 };
+
 export default FootballMatchAnalyzer;

@@ -84,7 +84,7 @@
                                             <span class="px-3 py-1 bg-white rounded-full border">MP4</span>
                                             <span class="px-3 py-1 bg-white rounded-full border">AVI</span>
                                             <span class="px-3 py-1 bg-white rounded-full border">MOV</span>
-                                            <span>• Max 100MB</span>
+                                            <span>• Max 1GB</span>
                                         </div>
                                     </div>
                                 </label>
@@ -159,143 +159,209 @@
 
     <script>
         let selectedFile = null;
-        const fileInput = document.getElementById('video_url');
-        const uploadLabel = document.getElementById('uploadLabel');
-        const uploadContent = document.getElementById('uploadContent');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
-        const submitBtn = document.getElementById('submitBtn');
+const fileInput = document.getElementById('video_url');
+const uploadLabel = document.getElementById('uploadLabel');
+const uploadContent = document.getElementById('uploadContent');
+const fileInfo = document.getElementById('fileInfo');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const submitBtn = document.getElementById('submitBtn');
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
 
-        // File input change handler
-        fileInput.addEventListener('change', function(e) {
-            handleFileSelect(e.target.files[0]);
+// Get CSRF token from multiple sources
+function getCsrfToken() {
+    // Try meta tag first
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) return metaTag.content;
+    
+    // Try hidden input as fallback
+    const hiddenInput = document.querySelector('input[name="_token"]');
+    if (hiddenInput) return hiddenInput.value;
+    
+    // Try Laravel's global variable
+    if (typeof Laravel !== 'undefined' && Laravel.csrfToken) {
+        return Laravel.csrfToken;
+    }
+    
+    throw new Error('CSRF token not found');
+}
+
+// File input change handler
+fileInput.addEventListener('change', function(e) {
+    handleFileSelect(e.target.files[0]);
+});
+
+function handleFileSelect(file) {
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/quicktime'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('Please select a valid video file (MP4, AVI, MOV)');
+        return;
+    }
+    
+    selectedFile = file;
+    
+    // Update UI
+    fileName.textContent = file.name;
+    fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+    
+    // Hide upload area and show file info
+    uploadLabel.classList.add('hidden');
+    fileInfo.classList.remove('hidden');
+}
+
+function removeFile() {
+    selectedFile = null;
+    fileInput.value = '';
+    
+    // Show upload area and hide file info
+    uploadLabel.classList.remove('hidden');
+    fileInfo.classList.add('hidden');
+}
+
+// Form submission with chunked upload
+document.getElementById('videoForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const titleInput = document.getElementById('title');
+    
+    // Validate title
+    if (!titleInput.value.trim()) {
+        alert('Please enter a video title');
+        titleInput.focus();
+        return;
+    }
+    
+    // Validate file
+    if (!selectedFile) {
+        alert('Please select a video file');
+        return;
+    }
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i><span>Uploading...</span>';
+    
+    try {
+        await uploadFileInChunks(selectedFile, titleInput.value);
+    } catch (error) {
+        console.error('Upload failed:', error);
+        alert('Upload failed: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus text-sm"></i><span>Create Video</span>';
+    }
+});
+
+async function uploadFileInChunks(file, title) {
+    const fileId = generateFileId();
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    
+    try {
+        const csrfToken = getCsrfToken();
+        
+        // Upload all chunks
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+            const start = chunkIndex * CHUNK_SIZE;
+            const end = Math.min(file.size, start + CHUNK_SIZE);
+            const chunk = file.slice(start, end);
+            
+            const formData = new FormData();
+            formData.append('file', chunk);
+            formData.append('file_id', fileId);
+            formData.append('chunk_index', chunkIndex);
+            formData.append('total_chunks', totalChunks);
+            
+            const response = await fetch('/upload-chunk', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: formData
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Chunk upload failed: ${response.statusText}`);
+            }
+            
+            // Update progress
+            const progress = Math.round(((chunkIndex + 1) / totalChunks) * 100);
+            submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin text-sm"></i><span>Uploading... ${progress}%</span>`;
+        }
+        
+        // Complete the upload
+        const formData = new FormData();
+        formData.append('file_id', fileId);
+        formData.append('title', title);
+        formData.append('original_name', file.name);
+        formData.append('total_chunks', totalChunks);
+        
+        const response = await fetch('/complete-upload', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: formData
         });
-
-        function handleFileSelect(file) {
-            if (!file) return;
-            
-            // Validate file type
-            const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/quicktime'];
-            if (!allowedTypes.includes(file.type)) {
-                alert('Please select a valid video file (MP4, AVI, MOV)');
-                return;
-            }
-            
-            // Validate file size (100MB = 100 * 1024 * 1024 bytes)
-            const maxSize = 100 * 1024 * 1024;
-            if (file.size > maxSize) {
-                alert('File size must be less than 100MB');
-                return;
-            }
-            
-            selectedFile = file;
-            
-            // Update UI
-            fileName.textContent = file.name;
-            fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-            
-            // Hide upload area and show file info
-            uploadLabel.classList.add('hidden');
-            fileInfo.classList.remove('hidden');
-            
-            console.log('File selected:', file.name, file.size, 'bytes');
+        
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Upload completion failed');
         }
+    } catch (error) {
+        throw error;
+    }
+}
 
-        function removeFile() {
-            selectedFile = null;
-            fileInput.value = '';
-            
-            // Show upload area and hide file info
-            uploadLabel.classList.remove('hidden');
-            fileInfo.classList.add('hidden');
-            
-            // Reset upload label styling
-            uploadLabel.classList.remove('border-green-300', 'bg-green-50');
-            uploadLabel.classList.add('border-gray-300', 'bg-gray-50');
-        }
+function generateFileId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
-        // Drag and drop functionality
-        const dropZone = uploadLabel;
+// Drag and drop functionality
+const dropZone = uploadLabel;
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+});
 
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, highlight, false);
+});
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, highlight, false);
-        });
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, unhighlight, false);
+});
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, unhighlight, false);
-        });
+function highlight(e) {
+    dropZone.classList.add('border-blue-400', 'bg-blue-50');
+}
 
-        function highlight(e) {
-            dropZone.classList.add('border-blue-400', 'bg-blue-50');
-        }
+function unhighlight(e) {
+    dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+}
 
-        function unhighlight(e) {
-            dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-        }
+dropZone.addEventListener('drop', handleDrop, false);
 
-        dropZone.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            
-            if (files.length > 0) {
-                // Set the file to the input
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(files[0]);
-                fileInput.files = dataTransfer.files;
-                
-                handleFileSelect(files[0]);
-            }
-        }
-
-        // Form submission validation
-        document.getElementById('videoForm').addEventListener('submit', function(e) {
-            const titleInput = document.getElementById('title');
-            const videoInput = document.getElementById('video_url');
-            
-            // Check if title is filled
-            if (!titleInput.value.trim()) {
-                e.preventDefault();
-                alert('Please enter a video title');
-                titleInput.focus();
-                return false;
-            }
-            
-            // Check if file is selected
-            if (!videoInput.files || videoInput.files.length === 0) {
-                e.preventDefault();
-                alert('Please select a video file');
-                return false;
-            }
-            
-            // Disable submit button to prevent double submission
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `
-                <i class="fas fa-spinner fa-spin text-sm"></i>
-                <span>Uploading...</span>
-            `;
-            
-            console.log('Form submitting with file:', videoInput.files[0]);
-            return true;
-        });
-
-        // Debug: Log file input state
-        setInterval(() => {
-            const files = fileInput.files;
-            if (files && files.length > 0) {
-                console.log('File input has file:', files[0].name);
-            }
-        }, 5000);
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    
+    if (files.length > 0) {
+        // Set the file to the input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(files[0]);
+        fileInput.files = dataTransfer.files;
+        
+        handleFileSelect(files[0]);
+    }
+}
     </script>
 @endsection

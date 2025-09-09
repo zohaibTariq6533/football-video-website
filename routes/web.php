@@ -57,6 +57,8 @@ Route::middleware(['isUserValid',AdminCheck::class])->group(function(){
     Route::get('/admin/games/add-new-game',[GameController::class,'gamePage'])->name('gamePage')->withoutMiddleware(AdminCheck::class);
     // Route::get('admin/teams/{video_id}',[TeamController::class,'showTeams'])->name('showTeams');
     Route::post('/admin/games/add-new-game/add',[GameController::class,'createGame'])->name('createGamefuntion')->withoutMiddleware(AdminCheck::class);
+    Route::post('/upload-chunk', [GameController::class, 'uploadChunk'])->name('upload.chunk');
+    Route::post('/complete-upload', [GameController::class, 'completeUpload'])->name('upload.complete');
     Route::get('/admin/games/add-new-game/{video_id}/add-teams',[TeamController::class,'showCreatePage'])->name('teamPage')->withoutMiddleware(AdminCheck::class);
     Route::post('/admin/teams/add-new-teams/add/{video_id}',[TeamController::class,'createTeam'])->name('createTeams')->withoutMiddleware(AdminCheck::class);
     Route::get('/admin/teams/update-team',function(){
