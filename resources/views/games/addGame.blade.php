@@ -191,26 +191,35 @@ fileInput.addEventListener('change', function(e) {
     handleFileSelect(e.target.files[0]);
 });
 
-function handleFileSelect(file) {
-    if (!file) return;
-    
-    // Validate file type
-    const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/quicktime'];
-    if (!allowedTypes.includes(file.type)) {
-        alert('Please select a valid video file (MP4, AVI, MOV)');
-        return;
-    }
-    
-    selectedFile = file;
-    
-    // Update UI
-    fileName.textContent = file.name;
-    fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-    
-    // Hide upload area and show file info
-    uploadLabel.classList.add('hidden');
-    fileInfo.classList.remove('hidden');
-}
+        function handleFileSelect(file) {
+            if (!file) return;
+            
+            // Validate file type
+            const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/quicktime'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please select a valid video file (MP4, AVI, MOV)');
+                return;
+            }
+            
+            // Validate file size (100MB = 100 * 1024 * 1024 bytes)
+            const maxSize = 100 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert('File size must be less than 100MB');
+                return;
+            }
+            
+            selectedFile = file;
+            
+            // Update UI
+            fileName.textContent = file.name;
+            fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+            
+            // Hide upload area and show file info
+            uploadLabel.classList.add('hidden');
+            fileInfo.classList.remove('hidden');
+            
+            console.log('File selected:', file.name, file.size, 'bytes');
+        }
 
 function removeFile() {
     selectedFile = null;
