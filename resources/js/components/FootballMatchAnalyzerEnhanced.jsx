@@ -689,22 +689,37 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     
     // Update the marker in analysisMarkers
     setAnalysisMarkers(prev => 
-      prev.map(marker => 
-        marker.id === event.id 
-          ? {
-              ...marker,
-              team: eventTypeConfig.requiresTeam && configData.selectedTeam ? configData.selectedTeam.name : 'Match',
-              player_id: configData.selectedPlayer ? configData.selectedPlayer.id : null,
-              jerseyNo: configData.selectedPlayer ? configData.selectedPlayer.jerseyNo : null,
-              playerName: configData.selectedPlayer ? configData.selectedPlayer.name : null,
-              action: configData.selectedAction || (eventTypeConfig.actions.length > 0 ? eventTypeConfig.actions[0] : event.eventType),
-              assist_player_id: configData.selectedAssistPlayer ? configData.selectedAssistPlayer.id : null,
-              assistJerseyNo: configData.selectedAssistPlayer ? configData.selectedAssistPlayer.jerseyNo : null,
-              assistPlayerName: configData.selectedAssistPlayer ? configData.selectedAssistPlayer.name : null,
-              isConfigured: true
-            }
-          : marker
-      )
+      prev.map(marker => {
+        if (marker.id !== event.id) return marker;
+
+        const updatedMarker = {
+          ...marker,
+          team: eventTypeConfig.requiresTeam && configData.selectedTeam ? configData.selectedTeam.name : 'Match',
+          team_id: configData.selectedTeam ? configData.selectedTeam.id : null,
+          player_id: configData.selectedPlayer ? configData.selectedPlayer.id : null,
+          jerseyNo: configData.selectedPlayer ? configData.selectedPlayer.jerseyNo : null,
+          playerName: configData.selectedPlayer ? configData.selectedPlayer.name : null,
+          action: configData.selectedAction || (eventTypeConfig.actions.length > 0 ? eventTypeConfig.actions[0] : event.eventType),
+          assist_player_id: configData.selectedAssistPlayer ? configData.selectedAssistPlayer.id : null,
+          assistJerseyNo: configData.selectedAssistPlayer ? configData.selectedAssistPlayer.jerseyNo : null,
+          assistPlayerName: configData.selectedAssistPlayer ? configData.selectedAssistPlayer.name : null,
+          isConfigured: true
+        };
+
+        // Special handling for Transition events
+        if (event.eventType === 'Transition') {
+          updatedMarker.team_id = configData.selectedTeam ? configData.selectedTeam.id : null;
+        }
+
+        // Special handling for Shot events
+        if (event.eventType === 'Shot') {
+          updatedMarker.team_id = configData.selectedTeam ? configData.selectedTeam.id : null;
+          updatedMarker.player_id = configData.selectedPlayer ? configData.selectedPlayer.id : null;
+          updatedMarker.assist_player_id = configData.selectedAssistPlayer ? configData.selectedAssistPlayer.id : null;
+        }
+
+        return updatedMarker;
+      })
     );
     
     // Remove from open event configs
@@ -855,42 +870,115 @@ const handleViewStats = () => {
 const saveAllAnalysis = useCallback(async () => {
   setIsSaving(true);
   try {
+    // Clean and prepare markers data
+    const cleanedMarkers = analysisMarkers
+      .filter(marker => marker.isConfigured)
+      .map(marker => {
+        // Find team object to get team_id
+        const team = teams.find(t => t.name === marker.team);
+        
+        // Prepare base marker data
+        const baseMarker = {
+          id: marker.id,
+          time: marker.time,
+          endTime: marker.endTime,
+          eventType: marker.eventType,
+          team: marker.team,
+          team_id: marker.team_id || team?.id || null,  // Use existing team_id if available
+          player_id: marker.player_id || null,
+          jerseyNo: marker.jerseyNo || null,
+          playerName: marker.playerName || null,
+          action: marker.action || null,
+          assist_player_id: marker.assist_player_id || null,
+          assistJerseyNo: marker.assistJerseyNo || null,
+          assistPlayerName: marker.assistPlayerName || null,
+          color: marker.color,
+          isTimeBased: marker.isTimeBased || false
+        };
+
+        // Debug log to check values
+        console.log('Processing marker:', {
+          eventType: marker.eventType,
+          team_id: baseMarker.team_id,
+          player_id: baseMarker.player_id,
+          assist_player_id: baseMarker.assist_player_id
+        });
+
+        // Special handling for Transition events
+        if (marker.eventType === 'Transition') {
+          // First try to use the existing team_id
+          if (!baseMarker.team_id) {
+            // If no team_id, try to find it from the team name
+            const transitionTeam = teams.find(t => 
+              (marker.team && (
+                marker.team.includes(t.shortName) || 
+                marker.team.includes(t.name))
+              )
+            );
+            baseMarker.team_id = transitionTeam?.id || team?.id || null;
+          }
+        }
+
+        // Special handling for Shot events
+        if (marker.eventType === 'Shot') {
+          // Ensure these fields are explicitly set for shots, using existing values first
+          baseMarker.team_id = marker.team_id || team?.id || null;
+          baseMarker.player_id = marker.player_id || null;
+          baseMarker.assist_player_id = marker.assist_player_id || null;
+        }
+
+        return baseMarker;
+      });
+
     const analysisData = {
-      video_id: videoData?.id || null,
-      markers: analysisMarkers.filter(marker => marker.isConfigured),
-      created_at: new Date().toISOString()
+      video_id: parseInt(videoData?.id) || null,
+      markers: cleanedMarkers,
+      created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
     };
 
-    console.log('Sending data:', analysisData);
+    // Validate data before sending
+    if (!Array.isArray(cleanedMarkers)) {
+      throw new Error('Invalid markers data');
+    }
 
+    // Send request
     const response = await fetch('/api/save-analysis', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
       },
       body: JSON.stringify(analysisData)
     });
 
-    console.log('Response status:', response.status);
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log('Response data:', result);
-      setAnalysisId(result.video_id);
-      alert('Analysis saved successfully!');
-    } else {
-      const errorData = await response.json();
-      console.error('Error response:', errorData);
-      throw new Error(errorData.message || 'Failed to save analysis');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(
+        errorData?.message || 
+        `Server returned ${response.status}: ${response.statusText}`
+      );
     }
+
+    const result = await response.json();
+    
+    if (!result || typeof result.video_id === 'undefined') {
+      throw new Error('Invalid response from server');
+    }
+
+    setAnalysisId(result.video_id);
+    alert('Analysis saved successfully!');
+
   } catch (error) {
     console.error('Error saving analysis:', error);
-    alert('Error saving analysis: ' + error.message);
+    alert(
+      'Failed to save analysis: ' + 
+      (error.message || 'Unknown error occurred. Please try again.')
+    );
   } finally {
     setIsSaving(false);
   }
-}, [analysisMarkers, videoData]);
+}, [analysisMarkers, videoData, teams]);
   
   // Cleanup
   useEffect(() => {
