@@ -276,6 +276,8 @@ public function videoAnalyze(string $id){
 
     // dd($teams);
     
-    return view('football.analyzer', ['video' => $video, 'teams' => $teams]);
+    $videoId = $video->id;
+    
+    return view('football.analyzer', ['video' => $video, 'teams' => $teams, 'videoId' => $videoId]);
 }
 }

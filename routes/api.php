@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\AnalysisController;
 use App\Http\Controllers\FootballAnalyzerController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 // Route::post('match/analysis/bulk', [FootballAnalyzerController::class, 'storeBulk']);
 
@@ -13,3 +15,11 @@ use Illuminate\Support\Facades\Route;
 //         'saved_data' => $request->analysis_data
 //     ]);
 // });
+
+Route::middleware('auth:api')->get('/user', function (Request $request) {
+    return $request->user();
+});
+
+Route::post('/save-analysis', [AnalysisController::class, 'save']);
+Route::get('/video/{video}/stats', [AnalysisController::class, 'stats']);
+Route::get('/video/{video}/export', [AnalysisController::class, 'export']);

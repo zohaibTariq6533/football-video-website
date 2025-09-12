@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Upload, X, Save, ChevronDown, ChevronUp, BarChart3, ClipboardList, Filter, Maximize, Edit2, FastForward, Rewind, Volume2, VolumeX, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const FootballMatchAnalyzer = ({ matchId = 1 }) => {
   const mount = document.getElementById("football-analyzer");
   const teamsData = JSON.parse(mount.dataset.teams);
   const videoData = JSON.parse(mount.dataset.video);
+  const videoId = mount.dataset.videoId ? JSON.parse(mount.dataset.videoId) : null;
    
+  const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [displayTime, setDisplayTime] = useState(0); // For display purposes only
@@ -399,12 +402,26 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         action: 'Period',
         color: eventTypes.find(et => et.name === 'Period').color,
         isTimeBased: true,
-        isConfigured: true
+        isConfigured: false // Set to false so it opens for configuration
       };
       
       setAnalysisMarkers(prev => [...prev, periodMarker]);
       setActivePeriod(false);
       setPeriodStartTime(null);
+      
+      // Open configuration panel for this period
+      setOpenEventConfigs(prev => [
+        {
+          event: periodMarker,
+          configData: {
+            selectedTeam: null,
+            selectedPlayer: null,
+            selectedAction: null,
+            selectedAssistPlayer: null
+          }
+        },
+        ...prev
+      ]);
     } else {
       setActivePeriod(true);
       setPeriodStartTime(currentTimeRef.current);
@@ -429,13 +446,27 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
         action: 'Final Third Entry',
         color: eventTypes.find(et => et.name === 'Attack 3rd').color,
         isTimeBased: true,
-        isConfigured: false
+        isConfigured: false // Set to false so it opens for configuration
       };
       
       setAnalysisMarkers(prev => [...prev, attack3rdMarker]);
       setCurrentEvents(prev => [...prev, attack3rdMarker]);
       setActiveAttack3rd(false);
       setAttack3rdStartTime(null);
+      
+      // Open configuration panel for this attack 3rd
+      setOpenEventConfigs(prev => [
+        {
+          event: attack3rdMarker,
+          configData: {
+            selectedTeam: null,
+            selectedPlayer: null,
+            selectedAction: null,
+            selectedAssistPlayer: null
+          }
+        },
+        ...prev
+      ]);
     } else {
       setActiveAttack3rd(true);
       setAttack3rdStartTime(currentTimeRef.current);
@@ -783,67 +814,83 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     }
   }, [displayTime, duration]); // Use displayTime instead of currentTime to reduce re-renders
   
+
+  // Update the stats button click handler
+const handleViewStats = () => {
+    if (analysisId) {
+        navigate(`/video/${analysisId}/stats`);
+    } else {
+        alert('Please save the analysis first');
+    }
+};
+
   // Load stats data
   const loadStatsData = useCallback(async () => {
-    if (!analysisId) return;
-    
-    setIsLoadingStats(true);
-    try {
-      const response = await fetch(`/api/analysis/${analysisId}/stats`, {
-        headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setStatsData(data);
-        setShowStatsModal(true);
-      } else {
-        throw new Error('Failed to load stats');
+  if (!analysisId) return;
+
+  setIsLoadingStats(true);
+  try {
+    const response = await fetch(`/api/video/${analysisId}/stats`, {
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
       }
-    } catch (error) {
-      console.error('Error loading stats:', error);
-      alert('Error loading statistics. Please try again.');
-    } finally {
-      setIsLoadingStats(false);
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setStatsData(data);
+      setShowStatsModal(true);
+    } else {
+      throw new Error('Failed to load stats');
     }
-  }, [analysisId]);
+  } catch (error) {
+    console.error('Error loading stats:', error);
+    alert('Error loading statistics. Please try again.');
+  } finally {
+    setIsLoadingStats(false);
+  }
+}, [analysisId]);
   
   // Save analysis data
-  const saveAllAnalysis = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      const analysisData = {
-        video_id: videoData?.id || null,
-        match_id: matchId,
-        markers: analysisMarkers.filter(marker => marker.isConfigured),
-        created_at: new Date().toISOString()
-      };
-      
-      const response = await fetch('/api/save-analysis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify(analysisData)
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        setAnalysisId(result.analysis_id);
-        alert('Analysis saved successfully!');
-      } else {
-        throw new Error('Failed to save analysis');
-      }
-    } catch (error) {
-      console.error('Error saving analysis:', error);
-      alert('Error saving analysis. Please try again.');
-    } finally {
-      setIsSaving(false);
+const saveAllAnalysis = useCallback(async () => {
+  setIsSaving(true);
+  try {
+    const analysisData = {
+      video_id: videoData?.id || null,
+      markers: analysisMarkers.filter(marker => marker.isConfigured),
+      created_at: new Date().toISOString()
+    };
+
+    console.log('Sending data:', analysisData);
+
+    const response = await fetch('/api/save-analysis', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify(analysisData)
+    });
+
+    console.log('Response status:', response.status);
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('Response data:', result);
+      setAnalysisId(result.video_id);
+      alert('Analysis saved successfully!');
+    } else {
+      const errorData = await response.json();
+      console.error('Error response:', errorData);
+      throw new Error(errorData.message || 'Failed to save analysis');
     }
-  }, [analysisMarkers, videoData, matchId]);
+  } catch (error) {
+    console.error('Error saving analysis:', error);
+    alert('Error saving analysis: ' + error.message);
+  } finally {
+    setIsSaving(false);
+  }
+}, [analysisMarkers, videoData]);
   
   // Cleanup
   useEffect(() => {
@@ -860,11 +907,16 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     };
   }, []);
   
-  // Get sorted markers
+  // Get sorted markers - now sorted by ending point
   const getSortedMarkers = useCallback(() => {
     return [...analysisMarkers]
       .filter(marker => marker.isConfigured)
-      .sort((a, b) => b.time - a.time);
+      .sort((a, b) => {
+        // For time-based events, use endTime, otherwise use time
+        const timeA = a.endTime || a.time;
+        const timeB = b.endTime || b.time;
+        return timeB - timeA; // Sort in descending order (highest ending time first)
+      });
   }, [analysisMarkers]);
   
   // Stats Modal Component - memoized
@@ -1371,41 +1423,51 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
           {/* Save button overlay - Hide in fullscreen */}
           {!isFullscreen && (
             <div className="absolute top-4 right-4">
-              {/* Stat buttons */}
               <div className="flex flex-row mb-4">
+                {/* // Stats button */}
                 <button
-                  onClick={loadStatsData}
-                  disabled={!analysisId || isLoadingStats}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-l-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="View Statistics"
+                    onClick={handleViewStats}
+                    disabled={!analysisId}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-l-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="View Statistics"
                 >
-                  <BarChart3 size={18} />
+                    <BarChart3 size={18} />
                 </button>
+
+                {/* // report button */}
                 <button
-                  onClick={() => window.open(`/analysis/${analysisId}/report`, '_blank')}
-                  disabled={!analysisId}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="View Detailed Report"
+                    onClick={handleViewStats}
+                    disabled={!analysisId}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="View Detailed Report"
                 >
-                  <ClipboardList size={18} />
+                    <ClipboardList size={18} />
                 </button>
+
+                {/* // Export button */}
                 <button
-                  onClick={() => window.open(`/analysis/${analysisId}/export`, '_blank')}
-                  disabled={!analysisId}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Export Data"
+                    onClick={() => {
+                        if (analysisId) {
+                            window.open(`/video/${analysisId}/export`, '_blank');
+                        } else {
+                            alert('Please save the analysis first');
+                        }
+                    }}
+                    disabled={!analysisId}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Export Data"
                 >
-                  <ExternalLink size={18} />
+                    <ExternalLink size={18} />
                 </button>
               </div>
               <div className="flex flex-row-reverse">
                 <button
-                  onClick={saveAllAnalysis}
-                  disabled={isSaving || analysisMarkers.length === 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={saveAllAnalysis}
+                    disabled={isSaving || analysisMarkers.length === 0}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save size={18} />
-                  {isSaving ? 'Saving...' : 'Save'}
+                    <Save size={18} />
+                    {isSaving ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </div>
@@ -1772,7 +1834,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
               ))}
             </div>
             
-            {/* Action List */}
+            {/* Action List - Now sorted by ending point */}
             <div className="border-t border-gray-200 pt-4">
               <h4 className="font-semibold text-gray-800 mb-3">Action List ({analysisMarkers.filter(m => m.isConfigured).length})</h4>
               <div className="space-y-2 h-auto overflow-y-auto">

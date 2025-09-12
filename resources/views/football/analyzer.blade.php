@@ -20,6 +20,8 @@
             <div id="football-analyzer" 
                 data-video="{{ json_encode($video) }}"
                 data-teams="{{ json_encode($teams) }}"
+                data-video-id="{{ json_encode($videoId) }}"
+                {{-- data-video-id='@json($videoId)'> --}}
                 ></div>
         </main>
 

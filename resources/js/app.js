@@ -8,9 +8,9 @@ import FootballMatchAnalyzer from './components/FootballMatchAnalyzerEnhanced';
 // import FootballMatchAnalyzer from './components/FootballMatchAnalyzer.jsx';
 
 // Mount the React component
-const container = document.getElementById('football-analyzer');
-if (container) {
+// const container = document.getElementById('football-analyzer');
+// if (container) {
     
-    const root = createRoot(container);
-    root.render(React.createElement(FootballMatchAnalyzer));
-}
+//     const root = createRoot(container);
+//     root.render(React.createElement(FootballMatchAnalyzer));
+// }
