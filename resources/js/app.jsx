@@ -27,7 +27,7 @@ if (container) {
         <Router>
             <Routes>
                 <Route path="/admin/dashboard/video-analyze/:matchId" element={<FootballMatchAnalyzer />} />
-                <Route path="/video/:videoId/stats" element={<StatisticsPage />} />
+                {/* <Route path="/video/:videoId/stats" element={<StatisticsPage />} /> */}
             </Routes>
         </Router>
     );

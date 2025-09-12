@@ -674,7 +674,7 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
   }, []);
   
   // Save configured event
-  const saveConfiguredEvent = useCallback((eventId) => {
+const saveConfiguredEvent = useCallback((eventId) => {
     const eventConfigIndex = openEventConfigs.findIndex(config => config.event.id === eventId);
     if (eventConfigIndex === -1) return;
     
@@ -683,49 +683,75 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     
     // For Shot and Foul events, team is optional
     if (eventTypeConfig.requiresTeam && !configData.selectedTeam && event.eventType !== 'Shot' && event.eventType !== 'Foul') {
-      alert('Please select a team');
-      return;
+        alert('Please select a team');
+        return;
     }
     
     // Update the marker in analysisMarkers
     setAnalysisMarkers(prev => 
-      prev.map(marker => {
-        if (marker.id !== event.id) return marker;
-
-        const updatedMarker = {
-          ...marker,
-          team: eventTypeConfig.requiresTeam && configData.selectedTeam ? configData.selectedTeam.name : 'Match',
-          team_id: configData.selectedTeam ? configData.selectedTeam.id : null,
-          player_id: configData.selectedPlayer ? configData.selectedPlayer.id : null,
-          jerseyNo: configData.selectedPlayer ? configData.selectedPlayer.jerseyNo : null,
-          playerName: configData.selectedPlayer ? configData.selectedPlayer.name : null,
-          action: configData.selectedAction || (eventTypeConfig.actions.length > 0 ? eventTypeConfig.actions[0] : event.eventType),
-          assist_player_id: configData.selectedAssistPlayer ? configData.selectedAssistPlayer.id : null,
-          assistJerseyNo: configData.selectedAssistPlayer ? configData.selectedAssistPlayer.jerseyNo : null,
-          assistPlayerName: configData.selectedAssistPlayer ? configData.selectedAssistPlayer.name : null,
-          isConfigured: true
-        };
-
-        // Special handling for Transition events
-        if (event.eventType === 'Transition') {
-          updatedMarker.team_id = configData.selectedTeam ? configData.selectedTeam.id : null;
-        }
-
-        // Special handling for Shot events
-        if (event.eventType === 'Shot') {
-          updatedMarker.team_id = configData.selectedTeam ? configData.selectedTeam.id : null;
-          updatedMarker.player_id = configData.selectedPlayer ? configData.selectedPlayer.id : null;
-          updatedMarker.assist_player_id = configData.selectedAssistPlayer ? configData.selectedAssistPlayer.id : null;
-        }
-
-        return updatedMarker;
-      })
+        prev.map(marker => {
+            if (marker.id !== event.id) return marker;
+            
+            // Find team object to get team_id
+            const team = configData.selectedTeam;
+            
+            // Find player object to get player_id
+            const player = configData.selectedPlayer;
+            
+            // Find assist player object to get assist_player_id
+            const assistPlayer = configData.selectedAssistPlayer;
+            
+            // Create the updated marker with all required fields
+            const updatedMarker = {
+                ...marker,
+                team: configData.selectedTeam ? configData.selectedTeam.name : 'Match',
+                team_id: team?.id || null,  // Use team.id if available
+                player_id: player?.id || null,
+                jerseyNo: player?.jerseyNo || null,
+                playerName: player?.name || null,
+                action: configData.selectedAction || (eventTypeConfig.actions.length > 0 ? eventTypeConfig.actions[0] : event.eventType),
+                assist_player_id: assistPlayer?.id || null,
+                assistJerseyNo: assistPlayer?.jerseyNo || null,
+                assistPlayerName: assistPlayer?.name || null,
+                isConfigured: true
+            };
+            
+            // Special handling for Shot events - ensure IDs are set
+            if (event.eventType === 'Shot') {
+                // For Shot events, ensure team_id is set if team is selected
+                if (configData.selectedTeam) {
+                    updatedMarker.team_id = configData.selectedTeam.id;
+                }
+                // Ensure player_id is set if player is selected
+                if (configData.selectedPlayer) {
+                    updatedMarker.player_id = configData.selectedPlayer.id;
+                }
+                // Ensure assist_player_id is set if assist player is selected
+                if (configData.selectedAssistPlayer) {
+                    updatedMarker.assist_player_id = configData.selectedAssistPlayer.id;
+                }
+            }
+            
+            // Special handling for Foul events
+            if (event.eventType === 'Foul') {
+                // For Foul events, ensure team_id is set if team is selected
+                if (configData.selectedTeam) {
+                    updatedMarker.team_id = configData.selectedTeam.id;
+                }
+                // Ensure player_id is set if player is selected
+                if (configData.selectedPlayer) {
+                    updatedMarker.player_id = configData.selectedPlayer.id;
+                }
+            }
+            
+            return updatedMarker;
+        })
     );
     
     // Remove from open event configs
     setOpenEventConfigs(prev => prev.filter(config => config.event.id !== eventId));
     setEditingMarkerId(null);
-  }, [openEventConfigs]);
+}, [openEventConfigs]);
   
   // Cancel event config
   const cancelEventConfig = useCallback((eventId) => {
@@ -830,10 +856,19 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
   }, [displayTime, duration]); // Use displayTime instead of currentTime to reduce re-renders
   
 
-  // Update the stats button click handler
 const handleViewStats = () => {
     if (analysisId) {
-        navigate(`/video/${analysisId}/stats`);
+        const statsUrl = `/admin/dashboard/video-analyze/${matchId}/stats/${analysisId}`;
+        window.open(statsUrl, '_blank');
+    } else {
+        alert('Please save the analysis first');
+    }
+};
+
+const handleViewFilter = () => {
+    if (analysisId) {
+        const filterUrl = `/admin/dashboard/video-analyze/${matchId}/filter/${analysisId}`;
+        window.open(filterUrl, '_blank');
     } else {
         alert('Please save the analysis first');
     }
@@ -874,73 +909,72 @@ const saveAllAnalysis = useCallback(async () => {
     const cleanedMarkers = analysisMarkers
       .filter(marker => marker.isConfigured)
       .map(marker => {
-        // Find team object to get team_id
-        const team = teams.find(t => t.name === marker.team);
-        
-        // Prepare base marker data
+        // Use the IDs that are already set in the marker object
         const baseMarker = {
           id: marker.id,
           time: marker.time,
           endTime: marker.endTime,
           eventType: marker.eventType,
           team: marker.team,
-          team_id: marker.team_id || team?.id || null,  // Use existing team_id if available
-          player_id: marker.player_id || null,
+          team_id: marker.team_id || null,  // Use the team_id from the marker
+          player_id: marker.player_id || null,  // Use the player_id from the marker
           jerseyNo: marker.jerseyNo || null,
           playerName: marker.playerName || null,
           action: marker.action || null,
-          assist_player_id: marker.assist_player_id || null,
+          assist_player_id: marker.assist_player_id || null,  // Use the assist_player_id from the marker
           assistJerseyNo: marker.assistJerseyNo || null,
           assistPlayerName: marker.assistPlayerName || null,
           color: marker.color,
           isTimeBased: marker.isTimeBased || false
         };
-
+        
+        // Special handling for Shot events - only try to find IDs if they're not already set
+        if (marker.eventType === 'Shot') {
+          // For Shot events, ensure team_id is set if team is selected but ID is missing
+          if (marker.team && !baseMarker.team_id) {
+            const team = teams.find(t => t.name === marker.team);
+            baseMarker.team_id = team?.id || null;
+          }
+          // Ensure player_id is set if player is selected but ID is missing
+          if (marker.playerName && marker.jerseyNo && !baseMarker.player_id) {
+            const team = teams.find(t => t.name === marker.team);
+            if (team) {
+              const player = team.players?.find(p => 
+                p.name === marker.playerName && p.jerseyNo === marker.jerseyNo
+              );
+              baseMarker.player_id = player?.id || null;
+            }
+          }
+          // Ensure assist_player_id is set if assist player is selected but ID is missing
+          if (marker.assistPlayerName && marker.assistJerseyNo && !baseMarker.assist_player_id) {
+            const team = teams.find(t => t.name === marker.team);
+            if (team) {
+              const assistPlayer = team.players?.find(p => 
+                p.name === marker.assistPlayerName && p.jerseyNo === marker.assistJerseyNo
+              );
+              baseMarker.assist_player_id = assistPlayer?.id || null;
+            }
+          }
+        }
+        
         // Debug log to check values
         console.log('Processing marker:', {
           eventType: marker.eventType,
+          team: marker.team,
           team_id: baseMarker.team_id,
           player_id: baseMarker.player_id,
           assist_player_id: baseMarker.assist_player_id
         });
-
-        // Special handling for Transition events
-        if (marker.eventType === 'Transition') {
-          // First try to use the existing team_id
-          if (!baseMarker.team_id) {
-            // If no team_id, try to find it from the team name
-            const transitionTeam = teams.find(t => 
-              (marker.team && (
-                marker.team.includes(t.shortName) || 
-                marker.team.includes(t.name))
-              )
-            );
-            baseMarker.team_id = transitionTeam?.id || team?.id || null;
-          }
-        }
-
-        // Special handling for Shot events
-        if (marker.eventType === 'Shot') {
-          // Ensure these fields are explicitly set for shots, using existing values first
-          baseMarker.team_id = marker.team_id || team?.id || null;
-          baseMarker.player_id = marker.player_id || null;
-          baseMarker.assist_player_id = marker.assist_player_id || null;
-        }
-
+        
         return baseMarker;
       });
-
+    
     const analysisData = {
       video_id: parseInt(videoData?.id) || null,
       markers: cleanedMarkers,
       created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
     };
-
-    // Validate data before sending
-    if (!Array.isArray(cleanedMarkers)) {
-      throw new Error('Invalid markers data');
-    }
-
+    
     // Send request
     const response = await fetch('/api/save-analysis', {
       method: 'POST',
@@ -951,7 +985,7 @@ const saveAllAnalysis = useCallback(async () => {
       },
       body: JSON.stringify(analysisData)
     });
-
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       throw new Error(
@@ -959,16 +993,15 @@ const saveAllAnalysis = useCallback(async () => {
         `Server returned ${response.status}: ${response.statusText}`
       );
     }
-
+    
     const result = await response.json();
     
     if (!result || typeof result.video_id === 'undefined') {
       throw new Error('Invalid response from server');
     }
-
+    
     setAnalysisId(result.video_id);
     alert('Analysis saved successfully!');
-
   } catch (error) {
     console.error('Error saving analysis:', error);
     alert(
@@ -1524,7 +1557,7 @@ const saveAllAnalysis = useCallback(async () => {
 
                 {/* // report button */}
                 <button
-                    onClick={handleViewStats}
+                    onClick={handleViewFilter}
                     disabled={!analysisId}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="View Detailed Report"

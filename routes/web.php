@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnalysisController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\UserController;
@@ -87,5 +88,9 @@ Route::middleware(['isUserValid',AdminCheck::class])->group(function(){
             'video' => App\Models\Video::find($video)
         ]);
     });
+
+    Route::get('/admin/dashboard/video-analyze/{matchId}/stats/{videoId}', [AnalysisController::class, 'showStats'])->name('video.analysis.stats');
+
+Route::get('/admin/dashboard/video-analyze/{matchId}/filter/{videoId}', [AnalysisController::class, 'showFilter'])->name('video.analysis.filter');
 
 });
