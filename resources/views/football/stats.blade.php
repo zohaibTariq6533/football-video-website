@@ -1,19 +1,24 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <title>Football Match Filter</title>
+    
+    <!-- Styles and Scripts -->
+    @viteReactRefresh
+    @vite(['resources/css/app.css', 'resources/js/app.jsx'])
 </head>
-<body>
-q1
-<div class="container-fluid">
+<body class="bg-gray-100 antialiased">
+    <div class="container-fluid">
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Match Statistics</h3>
             <div class="card-tools">
-                <a href="{{ route('video.analysis.filter', ['matchId' => $matchId, 'videoId' => $videoId]) }}" class="btn btn-sm btn-info" target="_blank">
+                <a href="{{ route('video.analysis.filter', ['videoId' => $videoId]) }}" class="btn btn-sm btn-info" target="_blank">
                     <i class="fas fa-filter mr-1"></i> Open Filter View
                 </a>
             </div>

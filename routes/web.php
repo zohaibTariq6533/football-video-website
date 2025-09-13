@@ -89,8 +89,8 @@ Route::middleware(['isUserValid',AdminCheck::class])->group(function(){
         ]);
     });
 
-    Route::get('/admin/dashboard/video-analyze/{matchId}/stats/{videoId}', [AnalysisController::class, 'showStats'])->name('video.analysis.stats');
+    Route::get('/admin/dashboard/video-analyze/stats/{videoId}', [AnalysisController::class, 'showStats'])->name('video.analysis.stats');
 
-Route::get('/admin/dashboard/video-analyze/{matchId}/filter/{videoId}', [AnalysisController::class, 'showFilter'])->name('video.analysis.filter');
+    Route::get('/admin/dashboard/video-analyze/filter/{videoId}', [AnalysisController::class, 'showFilter'])->name('video.analysis.filter');
 
 });

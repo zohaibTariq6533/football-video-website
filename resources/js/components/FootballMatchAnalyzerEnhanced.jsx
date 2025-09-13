@@ -335,54 +335,57 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     }
   }, [duration, seekToTime]);
   
-  // Handle possession toggle
-  const handlePossessionToggle = useCallback(() => {
-    if (activePossession) {
-      const endTime = currentTimeRef.current;
-      const startTime = possessionStartTime;
-      const team = teams.find(t => t.shortName === `Team ${activePossession}`);
-      
-      const possessionMarker = {
-        id: Date.now(),
-        time: startTime,
-        endTime: endTime,
-        eventType: 'Possession',
-        team: team.name,
-        player_id: null,
-        jerseyNo: null,
-        playerName: null,
-        action: 'Ball Control',
-        color: team.color,
-        isTimeBased: true,
-        isConfigured: true
-      };
-      
-      setAnalysisMarkers(prev => [...prev, possessionMarker]);
-      setActivePossession(null);
-      setPossessionStartTime(null);
-      setActivePossessionTeam(activePossession === 'A' ? 'B' : 'A');
-    } else {
-      setActivePossession(activePossessionTeam);
-      setPossessionStartTime(currentTimeRef.current);
-      
-      const transitionMarker = {
-        id: Date.now() + 1,
-        time: Math.max(0, currentTimeRef.current - 2),
-        endTime: Math.min(duration, currentTimeRef.current + 2),
-        eventType: 'Transition',
-        team: `Team ${activePossessionTeam}`,
-        player_id: null,
-        jerseyNo: null,
-        playerName: null,
-        action: 'Transition',
-        color: eventTypes.find(et => et.name === 'Transition').color,
-        isTimeBased: true,
-        isConfigured: true
-      };
-      
-      setAnalysisMarkers(prev => [...prev, transitionMarker]);
-    }
-  }, [activePossession, possessionStartTime, activePossessionTeam, duration, teams]);
+// Handle possession toggle
+const handlePossessionToggle = useCallback(() => {
+  if (activePossession) {
+    const endTime = currentTimeRef.current;
+    const startTime = possessionStartTime;
+    const team = teams.find(t => t.shortName === `Team ${activePossession}`);
+    
+    const possessionMarker = {
+      id: Date.now(),
+      time: startTime,
+      endTime: endTime,
+      eventType: 'Possession',
+      team: team.name,
+      player_id: null,
+      jerseyNo: null,
+      playerName: null,
+      action: 'Ball Control',
+      color: team.color,
+      isTimeBased: true,
+      isConfigured: true
+    };
+    
+    setAnalysisMarkers(prev => [...prev, possessionMarker]);
+    setActivePossession(null);
+    setPossessionStartTime(null);
+    setActivePossessionTeam(activePossession === 'A' ? 'B' : 'A');
+  } else {
+    setActivePossession(activePossessionTeam);
+    setPossessionStartTime(currentTimeRef.current);
+    
+    // Find the team object for the current active possession team
+    const team = teams.find(t => t.shortName === `Team ${activePossessionTeam}`);
+    
+    const transitionMarker = {
+      id: Date.now() + 1,
+      time: Math.max(0, currentTimeRef.current - 2),
+      endTime: Math.min(duration, currentTimeRef.current + 2),
+      eventType: 'Transition',
+      team: team ? team.name : `Team ${activePossessionTeam}`, // Use actual team name if found
+      player_id: null,
+      jerseyNo: null,
+      playerName: null,
+      action: 'Transition',
+      color: eventTypes.find(et => et.name === 'Transition').color,
+      isTimeBased: true,
+      isConfigured: true
+    };
+    
+    setAnalysisMarkers(prev => [...prev, transitionMarker]);
+  }
+}, [activePossession, possessionStartTime, activePossessionTeam, duration, teams, eventTypes]);
   
   // Handle period toggle
   const handlePeriodToggle = useCallback(() => {
@@ -858,7 +861,7 @@ const saveConfiguredEvent = useCallback((eventId) => {
 
 const handleViewStats = () => {
     if (analysisId) {
-        const statsUrl = `/admin/dashboard/video-analyze/${matchId}/stats/${analysisId}`;
+        const statsUrl = `/admin/dashboard/video-analyze/stats/${analysisId}`;
         window.open(statsUrl, '_blank');
     } else {
         alert('Please save the analysis first');
@@ -867,7 +870,7 @@ const handleViewStats = () => {
 
 const handleViewFilter = () => {
     if (analysisId) {
-        const filterUrl = `/admin/dashboard/video-analyze/${matchId}/filter/${analysisId}`;
+        const filterUrl = `/admin/dashboard/video-analyze/filter/${analysisId}`;
         window.open(filterUrl, '_blank');
     } else {
         alert('Please save the analysis first');
@@ -975,6 +978,7 @@ const saveAllAnalysis = useCallback(async () => {
       created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
     };
     
+    console.log(analysisData)
     // Send request
     const response = await fetch('/api/save-analysis', {
       method: 'POST',

@@ -266,7 +266,7 @@ class AnalysisController extends Controller
     }
 
 
-     public function showStats($matchId, $videoId)
+     public function showStats( $videoId)
     {
         // Fetch the analysis data
         $analyses = AnalysisEvent::where('video_id', $videoId)->get();
@@ -297,40 +297,60 @@ class AnalysisController extends Controller
         // Process the data for stats
         $stats = $this->processStatsData($markers);
         
-        return view('football.stats', compact('matchId', 'videoId', 'stats'));
+        return view('football.stats', compact('videoId', 'stats'));
     }
 
     
-    public function showFilter($matchId, $videoId)
-    {
-        // Fetch the analysis data
-        $analysis = AnalysisEvent::where('video_id', $videoId)->get();
-        
-        if ($analysis->isEmpty()) {
-            abort(404, 'Analysis not found');
-        }
-
-        // Convert the collection to array format
-        $markers = $analysis->map(function($analysis) {
-            return [
-                'eventType' => $analysis->event_type,
-                'time' => $analysis->time,
-                'endTime' => $analysis->end_time,
-                'team' => $analysis->team ? $analysis->team->name : null,
-                'playerName' => $analysis->player ? $analysis->player->name : null,
-                'jerseyNo' => $analysis->player ? $analysis->player->jersey_number : null,
-                'action' => $analysis->action,
-                'assistPlayerName' => $analysis->assistPlayer ? $analysis->assistPlayer->name : null,
-                'assistJerseyNo' => $analysis->assistPlayer ? $analysis->assistPlayer->jersey_number : null,
-                'color' => $analysis->color,
-            ];
-        })->toArray();
-        
-        // Process the data for filtering
-        $filterData = $this->processFilterData($markers);
-        
-        return view('football.filter', compact('matchId', 'videoId', 'filterData'));
+public function showFilter($videoId)
+{
+    // Fetch the analysis data with relationships
+    $analysis = AnalysisEvent::with(['team', 'player', 'assistPlayer'])
+        ->where('video_id', $videoId)
+        ->get();
+    
+    if ($analysis->isEmpty()) {
+        abort(404, 'Analysis not found');
     }
+    
+    // Convert the collection to array format
+    $markers = $analysis->map(function($event) {
+        return [
+            'id' => $event->id,
+            'eventType' => $event->event_type,
+            'time' => $event->time,
+            'endTime' => $event->end_time,
+            'team_id' => $event->team_id,
+            'team' => $event->team ? $event->team->name : null,
+            'player_id' => $event->player_id,
+            'playerName' => $event->player ? $event->player->name : null,
+            'jerseyNo' => $event->player ? $event->player->jersey_number : null,
+            'action' => $event->action,
+            'assist_player_id' => $event->assist_player_id,
+            'assistPlayerName' => $event->assistPlayer ? $event->assistPlayer->name : null,
+            'assistJerseyNo' => $event->assistPlayer ? $event->assistPlayer->jersey_number : null,
+            'color' => $event->color,
+            'isTimeBased' => true,
+        ];
+    })->toArray();
+    
+    // Get teams data
+    $teams = Team::where('video_id', $videoId)->get();
+    
+    // Add players to teams
+    foreach ($teams as $team) {
+        $team->players = Player::where('team_id', $team->id)->get();
+    }
+    
+    // Get video data
+    $video = Video::find($videoId);
+    
+    // Create analysis object with markers
+    $analysisData = [
+        'markers' => $markers, // This is the key change - wrap markers in an object
+    ];
+    
+    return view('football.filter', compact('videoId', 'teams', 'video', 'analysisData'));
+}
     
     private function processStatsData($markers)
     {
@@ -339,7 +359,7 @@ class AnalysisController extends Controller
             'totalEvents' => count($markers),
             'eventsByType' => [],
             'eventsByTeam' => [],
-            'goals' => 0,
+            '+goals' => 0,
             'shots' => 0,
             'fouls' => 0,
         ];

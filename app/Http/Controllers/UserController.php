@@ -124,7 +124,7 @@ class UserController extends Controller
     public function videoDetailEditPage(string $id){
         $videoDetail=DB::table('videos')->where('id',$id)->take(1)->get();
 
-        return view('games/videoDetailEdit',['video'=>$videoDetail]);
+        return view('games.videoDetailEdit',['video'=>$videoDetail]);
     }
 
     public function videoUpdate(Request $req,string $id){
