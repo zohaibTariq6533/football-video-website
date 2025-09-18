@@ -88,6 +88,7 @@ Route::middleware(['isUserValid',AdminCheck::class])->group(function(){
             'video' => App\Models\Video::find($video)
         ]);
     });
+    
 
     Route::get('/admin/dashboard/video-analyze/stats/{videoId}', [AnalysisController::class, 'showStats'])->name('video.analysis.stats');
 

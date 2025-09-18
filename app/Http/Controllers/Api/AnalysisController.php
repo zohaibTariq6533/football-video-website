@@ -12,93 +12,123 @@ use Illuminate\Support\Facades\Log;
 
 class AnalysisController extends Controller
 {
-    public function save(Request $request)
-{
-    $request->validate([
-        'video_id' => 'required|exists:videos,id',
-        'markers' => 'required|array',
-        'markers.*.eventType' => 'required|string',
-        'markers.*.time' => 'required|integer',
-        'markers.*.endTime' => 'nullable|integer',
-        'markers.*.team' => 'nullable|string',
-        'markers.*.playerName' => 'nullable|string',
-        'markers.*.jerseyNo' => 'nullable|integer',
-        'markers.*.action' => 'nullable|string',
-        'markers.*.assistPlayerName' => 'nullable|string',
-        'markers.*.assistJerseyNo' => 'nullable|integer',
-        'markers.*.color' => 'required|string',
-        'markers.*.isTimeBased' => 'required|boolean',
-        'markers.*.team_id' => 'nullable|integer',
-        'markers.*.player_id' => 'nullable|integer',
-        'markers.*.assist_player_id' => 'nullable|integer',
-    ]);
 
-    // Get the video
-    $video = Video::findOrFail($request->video_id);
-    
-    // Delete existing events for this video to avoid duplicates
-    AnalysisEvent::where('video_id', $video->id)->delete();
-    
-    // Create new events
-    foreach ($request->markers as $marker) {
-        // Use the provided team_id if available, otherwise find it by team name
-        $teamId = $marker['team_id'] ?? null;
-        if (!$teamId && $marker['team'] && $marker['team'] !== 'Match') {
-            $team = \App\Models\Team::where('name', $marker['team'])->first();
-            $teamId = $team ? $team->id : null;
-        }
+    public function getEvents($videoId)
+    {
+        $events = AnalysisEvent::with(['team', 'player', 'assistPlayer'])
+            ->where('video_id', $videoId)
+            ->get()
+            ->map(function($event) {
+                return [
+                    'id' => $event->id,
+                    'time' => $event->time,
+                    'endTime' => $event->end_time,
+                    'eventType' => $event->event_type,
+                    'team' => $event->team ? $event->team->name : null,
+                    'team_id' => $event->team_id,
+                    'player_id' => $event->player_id,
+                    'jerseyNo' => $event->player ? $event->player->jersey_number : null,
+                    'playerName' => $event->player ? $event->player->name : null,
+                    'action' => $event->action,
+                    'assist_player_id' => $event->assist_player_id,
+                    'assistJerseyNo' => $event->assistPlayer ? $event->assistPlayer->jersey_number : null,
+                    'assistPlayerName' => $event->assistPlayer ? $event->assistPlayer->name : null,
+                    'color' => $event->color,
+                    'isTimeBased' => $event->is_time_based,
+                    'isConfigured' => true // Mark as configured since it's saved
+                ];
+            });
+
+        return response()->json($events);
+    }
+
+    public function save(Request $request)
+    {
+        $request->validate([
+            'video_id' => 'required|exists:videos,id',
+            'markers' => 'required|array',
+            'markers.*.eventType' => 'required|string',
+            'markers.*.time' => 'required|integer',
+            'markers.*.endTime' => 'nullable|integer',
+            'markers.*.team' => 'nullable|string',
+            'markers.*.playerName' => 'nullable|string',
+            'markers.*.jerseyNo' => 'nullable|integer',
+            'markers.*.action' => 'nullable|string',
+            'markers.*.assistPlayerName' => 'nullable|string',
+            'markers.*.assistJerseyNo' => 'nullable|integer',
+            'markers.*.color' => 'required|string',
+            'markers.*.isTimeBased' => 'required|boolean',
+            'markers.*.team_id' => 'nullable|integer',
+            'markers.*.player_id' => 'nullable|integer',
+            'markers.*.assist_player_id' => 'nullable|integer',
+        ]);
+
+        // Get the video
+        $video = Video::findOrFail($request->video_id);
         
-        // Use the provided player_id if available, otherwise find it by jersey number and team
-        $playerId = $marker['player_id'] ?? null;
-        if (!$playerId && $marker['jerseyNo'] && $teamId) {
-            $player = \App\Models\Player::where('jersey_no', $marker['jerseyNo'])
-                ->where('team_id', $teamId)
-                ->first();
-            $playerId = $player ? $player->id : null;
-        }
+        // Delete existing events for this video to avoid duplicates
+        AnalysisEvent::where('video_id', $video->id)->delete();
         
-        // Use the provided assist_player_id if available, otherwise find it by jersey number and team
-        $assistPlayerId = $marker['assist_player_id'] ?? null;
-        if (!$assistPlayerId && $marker['assistJerseyNo'] && $teamId) {
-            $assistPlayer = \App\Models\Player::where('jersey_no', $marker['assistJerseyNo'])
-                ->where('team_id', $teamId)
-                ->first();
-            $assistPlayerId = $assistPlayer ? $assistPlayer->id : null;
-        }
-        
-        // Special handling for Transition events
-        if ($marker['eventType'] === 'Transition' && !$teamId && $marker['team']) {
-            // Try to extract team name from the team field
-            $teamName = $marker['team'];
-            if (strpos($teamName, 'Team A') !== false) {
-                $team = \App\Models\Team::where('name', 'LIKE', '%Team A%')->first();
-                $teamId = $team ? $team->id : null;
-            } else if (strpos($teamName, 'Team B') !== false) {
-                $team = \App\Models\Team::where('name', 'LIKE', '%Team B%')->first();
+        // Create new events
+        foreach ($request->markers as $marker) {
+            // Use the provided team_id if available, otherwise find it by team name
+            $teamId = $marker['team_id'] ?? null;
+            if (!$teamId && $marker['team'] && $marker['team'] !== 'Match') {
+                $team = \App\Models\Team::where('name', $marker['team'])->first();
                 $teamId = $team ? $team->id : null;
             }
+            
+            // Use the provided player_id if available, otherwise find it by jersey number and team
+            $playerId = $marker['player_id'] ?? null;
+            if (!$playerId && $marker['jerseyNo'] && $teamId) {
+                $player = \App\Models\Player::where('jersey_no', $marker['jerseyNo'])
+                    ->where('team_id', $teamId)
+                    ->first();
+                $playerId = $player ? $player->id : null;
+            }
+            
+            // Use the provided assist_player_id if available, otherwise find it by jersey number and team
+            $assistPlayerId = $marker['assist_player_id'] ?? null;
+            if (!$assistPlayerId && $marker['assistJerseyNo'] && $teamId) {
+                $assistPlayer = \App\Models\Player::where('jersey_no', $marker['assistJerseyNo'])
+                    ->where('team_id', $teamId)
+                    ->first();
+                $assistPlayerId = $assistPlayer ? $assistPlayer->id : null;
+            }
+            
+            // Special handling for Transition events
+            if ($marker['eventType'] === 'Transition' && !$teamId && $marker['team']) {
+                // Try to extract team name from the team field
+                $teamName = $marker['team'];
+                if (strpos($teamName, 'Team A') !== false) {
+                    $team = \App\Models\Team::where('name', 'LIKE', '%Team A%')->first();
+                    $teamId = $team ? $team->id : null;
+                } else if (strpos($teamName, 'Team B') !== false) {
+                    $team = \App\Models\Team::where('name', 'LIKE', '%Team B%')->first();
+                    $teamId = $team ? $team->id : null;
+                }
+            }
+            
+            // Create the event
+            AnalysisEvent::create([
+                'video_id' => $video->id,
+                'event_type' => $marker['eventType'],
+                'time' => $marker['time'],
+                'end_time' => $marker['endTime'] ?? null,
+                'team_id' => $teamId,
+                'player_id' => $playerId,
+                'action' => $marker['action'] ?? null,
+                'assist_player_id' => $assistPlayerId,
+                'color' => $marker['color'],
+                'is_time_based' => $marker['isTimeBased'],
+            ]);
         }
         
-        // Create the event
-        AnalysisEvent::create([
-            'video_id' => $video->id,
-            'event_type' => $marker['eventType'],
-            'time' => $marker['time'],
-            'end_time' => $marker['endTime'] ?? null,
-            'team_id' => $teamId,
-            'player_id' => $playerId,
-            'action' => $marker['action'] ?? null,
-            'assist_player_id' => $assistPlayerId,
-            'color' => $marker['color'],
-            'is_time_based' => $marker['isTimeBased'],
+        return response()->json([
+            'success' => true,
+            'video_id' => $video->id
         ]);
     }
-    
-    return response()->json([
-        'success' => true,
-        'video_id' => $video->id
-    ]);
-}
 
     public function stats($videoId)
     {
@@ -300,57 +330,56 @@ class AnalysisController extends Controller
         return view('football.stats', compact('videoId', 'stats'));
     }
 
-    
-public function showFilter($videoId)
-{
-    // Fetch the analysis data with relationships
-    $analysis = AnalysisEvent::with(['team', 'player', 'assistPlayer'])
-        ->where('video_id', $videoId)
-        ->get();
-    
-    if ($analysis->isEmpty()) {
-        abort(404, 'Analysis not found');
-    }
-    
-    // Convert the collection to array format
-    $markers = $analysis->map(function($event) {
-        return [
-            'id' => $event->id,
-            'eventType' => $event->event_type,
-            'time' => $event->time,
-            'endTime' => $event->end_time,
-            'team_id' => $event->team_id,
-            'team' => $event->team ? $event->team->name : null,
-            'player_id' => $event->player_id,
-            'playerName' => $event->player ? $event->player->name : null,
-            'jerseyNo' => $event->player ? $event->player->jersey_number : null,
-            'action' => $event->action,
-            'assist_player_id' => $event->assist_player_id,
-            'assistPlayerName' => $event->assistPlayer ? $event->assistPlayer->name : null,
-            'assistJerseyNo' => $event->assistPlayer ? $event->assistPlayer->jersey_number : null,
-            'color' => $event->color,
-            'isTimeBased' => true,
+    public function showFilter($videoId)
+    {
+        // Fetch the analysis data with relationships
+        $analysis = AnalysisEvent::with(['team', 'player', 'assistPlayer'])
+            ->where('video_id', $videoId)
+            ->get();
+        
+        if ($analysis->isEmpty()) {
+            abort(404, 'Analysis not found');
+        }
+        
+        // Convert the collection to array format
+        $markers = $analysis->map(function($event) {
+            return [
+                'id' => $event->id,
+                'eventType' => $event->event_type,
+                'time' => $event->time,
+                'endTime' => $event->end_time,
+                'team_id' => $event->team_id,
+                'team' => $event->team ? $event->team->name : null,
+                'player_id' => $event->player_id,
+                'playerName' => $event->player ? $event->player->name : null,
+                'jerseyNo' => $event->player ? $event->player->jersey_number : null,
+                'action' => $event->action,
+                'assist_player_id' => $event->assist_player_id,
+                'assistPlayerName' => $event->assistPlayer ? $event->assistPlayer->name : null,
+                'assistJerseyNo' => $event->assistPlayer ? $event->assistPlayer->jersey_number : null,
+                'color' => $event->color,
+                'isTimeBased' => true,
+            ];
+        })->toArray();
+        
+        // Get teams data
+        $teams = Team::where('video_id', $videoId)->get();
+        
+        // Add players to teams
+        foreach ($teams as $team) {
+            $team->players = Player::where('team_id', $team->id)->get();
+        }
+        
+        // Get video data
+        $video = Video::find($videoId);
+        
+        // Create analysis object with markers
+        $analysisData = [
+            'markers' => $markers, // This is the key change - wrap markers in an object
         ];
-    })->toArray();
-    
-    // Get teams data
-    $teams = Team::where('video_id', $videoId)->get();
-    
-    // Add players to teams
-    foreach ($teams as $team) {
-        $team->players = Player::where('team_id', $team->id)->get();
+        
+        return view('football.filter', compact('videoId', 'teams', 'video', 'analysisData'));
     }
-    
-    // Get video data
-    $video = Video::find($videoId);
-    
-    // Create analysis object with markers
-    $analysisData = [
-        'markers' => $markers, // This is the key change - wrap markers in an object
-    ];
-    
-    return view('football.filter', compact('videoId', 'teams', 'video', 'analysisData'));
-}
     
     private function processStatsData($markers)
     {
@@ -393,40 +422,5 @@ public function showFilter($videoId)
         }
         // dd($stats);
         return $stats;
-    }
-    
-    private function processFilterData($markers)
-    {
-        // Process markers for filtering
-        $filterData = [
-            'teams' => [],
-            'eventTypes' => [],
-            'players' => [],
-            'timeRanges' => [
-                'firstHalf' => ['start' => 0, 'end' => 2700],
-                'secondHalf' => ['start' => 2700, 'end' => 5400],
-            ],
-            'allMarkers' => $markers,
-        ];
-        
-        foreach ($markers as $marker) {
-            // Collect teams
-            if (!empty($marker['team']) && !in_array($marker['team'], $filterData['teams'])) {
-                $filterData['teams'][] = $marker['team'];
-            }
-            
-            // Collect event types
-            if (!in_array($marker['eventType'], $filterData['eventTypes'])) {
-                $filterData['eventTypes'][] = $marker['eventType'];
-            }
-            
-            // Collect players
-            if (!empty($marker['playerName']) && !in_array($marker['playerName'], $filterData['players'])) {
-                $filterData['players'][] = $marker['playerName'];
-            }
-        }
-        // dd($filterData);
-        
-        return $filterData;
     }
 }

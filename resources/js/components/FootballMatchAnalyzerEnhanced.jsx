@@ -2,11 +2,22 @@ import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Upload, X, Save, ChevronDown, ChevronUp, BarChart3, ClipboardList, Filter, Maximize, Edit2, FastForward, Rewind, Volume2, VolumeX, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const FootballMatchAnalyzer = ({ matchId = 1 }) => {
-  const mount = document.getElementById("football-analyzer");
-  const teamsData = JSON.parse(mount.dataset.teams);
-  const videoData = JSON.parse(mount.dataset.video);
-  const videoId = mount.dataset.videoId ? JSON.parse(mount.dataset.videoId) : null;
+const FootballMatchAnalyzer = ({ 
+  matchId = 1, 
+  initialTeams, 
+  initialVideo, 
+  videoId: propVideoId 
+}) => {
+  const videoId = propVideoId;
+
+  // const mount = document.getElementById("football-analyzer");
+  // const teamsData = JSON.parse(mount.dataset.teams);
+  // const videoData = JSON.parse(mount.dataset.video);
+  // const videoId = mount.dataset.videoId ? JSON.parse(mount.dataset.videoId) : null;
+
+  const [videoUrl, setVideoUrl] = useState(initialVideo?.video_url || null);
+  const [teams, setTeams] = useState(initialTeams || []);
+  const [videoTitle, setVideoTitle] = useState(initialVideo?.title || null);
    
   const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -16,17 +27,17 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
   const [videoProgress, setVideoProgress] = useState(0);
   const [analysisMarkers, setAnalysisMarkers] = useState([]);
   const [uploadedVideo, setUploadedVideo] = useState(null);
-  const [videoUrl, setVideoUrl] = useState(videoData?.video_url || null);
-  const [teams, setTeams] = useState(teamsData);
+  // const [videoUrl, setVideoUrl] = useState(videoData?.video_url || null);
+  // const [teams, setTeams] = useState(teamsData);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isVideoLoading, setIsVideoLoading] = useState(!!videoData);
+  const [isVideoLoading, setIsVideoLoading] = useState(!!videoUrl);
   const [showControls, setShowControls] = useState(false);
   const [editingMarkerId, setEditingMarkerId] = useState(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [videoTitle, setVideoTitle] = useState(videoData?.title || null);
+  // const [videoTitle, setVideoTitle] = useState(videoData?.title || null);
   const [analysisId, setAnalysisId] = useState(null);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [statsData, setStatsData] = useState(null);
@@ -152,6 +163,33 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
       requiresTeam: true
     }
   ];
+
+  // Function to load analysis events from the database
+  const loadAnalysisEvents = useCallback(async () => {
+    if (!videoId) return;
+
+    try {
+      const response = await fetch(`/api/video/${videoId}/events`, {
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+      });
+
+      if (response.ok) {
+        const events = await response.json();
+        setAnalysisMarkers(events);
+      } else {
+        console.error('Failed to load events');
+      }
+    } catch (error) {
+      console.error('Error loading events:', error);
+    }
+  }, [videoId]);
+
+  // Load events when component mounts
+  useEffect(() => {
+    loadAnalysisEvents();
+  }, [loadAnalysisEvents]);
   
   // Format time helper - memoized for performance
   const formatTime = useCallback((seconds) => {
@@ -182,33 +220,33 @@ const FootballMatchAnalyzer = ({ matchId = 1 }) => {
     }, 3000);
   }, []);
   
-  useEffect(() => { 
-    const el = document.getElementById("football-analyzer");
-     if (el) { 
-      const videoData = JSON.parse(el.dataset.video);
-       if (videoData && videoData.video_url) { 
-        setIsVideoLoading(true);
-        setUploadedVideo(videoData.video_url);
-        setVideoUrl(videoData.video_url); 
-        setShowUploadModal(false);
+  // useEffect(() => { 
+  //   const el = document.getElementById("football-analyzer");
+  //    if (el) { 
+  //     const videoData = JSON.parse(el.dataset.video);
+  //      if (videoData && videoData.video_url) { 
+  //       setIsVideoLoading(true);
+  //       setUploadedVideo(videoData.video_url);
+  //       setVideoUrl(videoData.video_url); 
+  //       setShowUploadModal(false);
         
-        const tempVideo = document.createElement('video');
-        tempVideo.src = videoData.video_url;
-        tempVideo.onloadedmetadata = () => {
-          setDuration(Math.floor(tempVideo.duration));
-          setCurrentTime(0);
-          currentTimeRef.current = 0;
-          displayTimeRef.current = 0;
-          setDisplayTime(0);
-          setIsPlaying(false);
-          setIsVideoLoading(false);
-        };
-        tempVideo.onerror = () => {
-          setIsVideoLoading(false);
-        };
-      } 
-    } 
-  }, []);
+  //       const tempVideo = document.createElement('video');
+  //       tempVideo.src = videoData.video_url;
+  //       tempVideo.onloadedmetadata = () => {
+  //         setDuration(Math.floor(tempVideo.duration));
+  //         setCurrentTime(0);
+  //         currentTimeRef.current = 0;
+  //         displayTimeRef.current = 0;
+  //         setDisplayTime(0);
+  //         setIsPlaying(false);
+  //         setIsVideoLoading(false);
+  //       };
+  //       tempVideo.onerror = () => {
+  //         setIsVideoLoading(false);
+  //       };
+  //     } 
+  //   } 
+  // }, []);
   
   // Handle seeking - optimized
   const seekToTime = useCallback((newTime) => {
@@ -973,12 +1011,12 @@ const saveAllAnalysis = useCallback(async () => {
       });
     
     const analysisData = {
-      video_id: parseInt(videoData?.id) || null,
+      video_id: parseInt(videoId) || null,
       markers: cleanedMarkers,
       created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
     };
     
-    console.log(analysisData)
+
     // Send request
     const response = await fetch('/api/save-analysis', {
       method: 'POST',
@@ -1015,7 +1053,7 @@ const saveAllAnalysis = useCallback(async () => {
   } finally {
     setIsSaving(false);
   }
-}, [analysisMarkers, videoData, teams]);
+}, [analysisMarkers, videoId, teams]);
   
   // Cleanup
   useEffect(() => {

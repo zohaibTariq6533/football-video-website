@@ -21,17 +21,8 @@
                 data-video="{{ json_encode($video) }}"
                 data-teams="{{ json_encode($teams) }}"
                 data-video-id="{{ json_encode($videoId) }}"
-                {{-- data-video-id='@json($videoId)'> --}}
                 ></div>
         </main>
-
-        {{-- <main>
-    <!-- React Component Mount Point -->
-    <div id="football-analyzer" 
-         data-video='@json($video)'
-         data-video-url="{{ $video}}"
-         data-video-title="{{ $video->title ?? 'Match Video' }}"></div>
-</main> --}}
     </div>
 </body>
 </html>

@@ -50,6 +50,27 @@ const analyzerContainer = document.getElementById('football-analyzer');
 const filterContainer = document.getElementById('football-filter');
 
 // Mount Football Analyzer if present
+// if (analyzerContainer) {
+//     const analyzerData = getDataFromElement(analyzerContainer);
+//     const root = createRoot(analyzerContainer);
+//     root.render(
+//         <Router>
+//             <Routes>
+//                 <Route 
+//                     path="/admin/dashboard/video-analyze/:matchId" 
+//                     element={
+//                         <FootballMatchAnalyzer 
+//                             initialTeams={analyzerData?.teams}
+//                             initialVideo={analyzerData?.video}
+//                             videoId={analyzerData?.videoId}
+//                         />
+//                     } 
+//                 />
+//             </Routes>
+//         </Router>
+//     );
+// }
+
 if (analyzerContainer) {
     const analyzerData = getDataFromElement(analyzerContainer);
     const root = createRoot(analyzerContainer);
@@ -83,14 +104,3 @@ if (filterContainer) {
         />
     );
 }
-// if (filter) {
-//     const root = createRoot(filter);
-//     root.render(
-//         <Router>
-//             <Routes>
-//                 <Route path="/admin/dashboard/video-analyze/:matchId/filter/:videoId" element={<FootballMatchFilter />} />
-//                 {/* <Route path="/video/:videoId/stats" element={<StatisticsPage />} /> */}
-//             </Routes>
-//         </Router>
-//     );
-// }
