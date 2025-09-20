@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Upload, X, Save, ChevronDown, ChevronUp, BarChart3, ClipboardList, Filter, Maximize, Edit2, FastForward, Rewind, Volume2, VolumeX, ExternalLink } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Upload, X, Save, ChevronDown, ChevronUp, BarChart3, ClipboardList, Filter, Maximize, Edit2, FastForward, Rewind, Volume2, VolumeX, ExternalLink, Funnel } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const FootballMatchAnalyzer = ({ 
@@ -1604,7 +1604,8 @@ const saveAllAnalysis = useCallback(async () => {
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="View Detailed Report"
                 >
-                    <ClipboardList size={18} />
+                    {/* <ClipboardList  /> */}
+                    <Funnel size={18} />
                 </button>
 
                 {/* // Export button */}

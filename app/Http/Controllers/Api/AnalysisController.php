@@ -364,7 +364,7 @@ class AnalysisController extends Controller
         
         // Get teams data
         $teams = Team::where('video_id', $videoId)->get();
-        
+
         // Add players to teams
         foreach ($teams as $team) {
             $team->players = Player::where('team_id', $team->id)->get();
