@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -13,118 +12,111 @@
     @vite(['resources/css/app.css', 'resources/js/app.jsx'])
 </head>
 <body class="bg-gray-100 antialiased">
-    <div class="container-fluid">
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Match Statistics</h3>
-            <div class="card-tools">
-                <a href="{{ route('video.analysis.filter', ['videoId' => $videoId]) }}" class="btn btn-sm btn-info" target="_blank">
-                    <i class="fas fa-filter mr-1"></i> Open Filter View
-                </a>
-            </div>
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Match Statistics</h1>
+            <p class="text-gray-600 mt-2">Video: {{ $video->title ?? 'Match Video' }}</p>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="info-box bg-info">
-                        <span class="info-box-icon"><i class="fas fa-futbol"></i></span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Total Events</span>
-                            <span class="info-box-number">{{ $stats['totalEvents'] }}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-3">
-                    <div class="info-box bg-success">
-                        <span class="info-box-icon"><i class="fas fa-bullseye"></i></span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Goals</span>
-                            <span class="info-box-number">{{ $stats['goals'] }}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-3">
-                    <div class="info-box bg-warning">
-                        <span class="info-box-icon"><i class="fas fa-crosshairs"></i></span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Shots</span>
-                            <span class="info-box-number">{{ $stats['shots'] }}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-3">
-                    <div class="info-box bg-danger">
-                        <span class="info-box-icon"><i class="fas fa-exclamation-triangle"></i></span>
-                        <div class="info-box-content">
-                            <span class="info-box-text">Fouls</span>
-                            <span class="info-box-number">{{ $stats['fouls'] }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row mt-4">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title">Events by Type</h5>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Event Type</th>
-                                        <th>Count</th>
-                                        <th>Percentage</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($stats['eventsByType'] as $type => $count)
-                                    <tr>
-                                        <td>{{ $type }}</td>
-                                        <td>{{ $count }}</td>
-                                        <td>{{ round(($count / $stats['totalEvents']) * 100, 1) }}%</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title">Events by Team</h5>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Team</th>
-                                        <th>Count</th>
-                                        <th>Percentage</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($stats['eventsByTeam'] as $team => $count)
-                                    <tr>
-                                        <td>{{ $team }}</td>
-                                        <td>{{ $count }}</td>
-                                        <td>{{ round(($count / $stats['totalEvents']) * 100, 1) }}%</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div>
+            <a href="{{ route('stats.download.pdf', $videoId) }}" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                Download PDF
+            </a>
         </div>
     </div>
+
+    @if($teams && count($teams) >= 2)
+    <div id="statsContent" class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
+                            Event / Action
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-red-600 uppercase tracking-wider w-1/5">
+                            {{ $teams[0]->name }}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-green-600 uppercase tracking-wider w-1/5">
+                            {{ $teams[1]->name }}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/5">
+                            Total
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <!-- Possession Row -->
+                    <tr class="bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            Possession
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                            {{ $stats['possession']['team1'] ?? 0 }}%
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                            {{ $stats['possession']['team2'] ?? 0 }}%
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                            100%
+                        </td>
+                    </tr>
+
+                    <!-- Event Rows -->
+                    @foreach($stats['events'] as $eventType => $eventData)
+                        <!-- Event Type Header Row -->
+                        <tr class="bg-blue-50">
+                            <td colspan="4" class="px-6 py-3 text-sm font-bold text-blue-800">
+                                {{ $eventType }}
+                            </td>
+                        </tr>
+
+                        <!-- Event Actions Rows -->
+                        @foreach($eventData['actions'] as $action => $actionData)
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 pl-10">
+                                    {{ $action }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                    {{ $actionData['team1'] ?? 0 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                    {{ $actionData['team2'] ?? 0 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                    {{ $actionData['total'] ?? 0 }}
+                                </td>
+                            </tr>
+                        @endforeach
+
+                        <!-- Event Total Row -->
+                        <tr class="bg-gray-100">
+                            <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 pl-6">
+                                {{ $eventType }} Total
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
+                                {{ $eventData['team1'] ?? 0 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
+                                {{ $eventData['team2'] ?? 0 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
+                                {{ $eventData['total'] ?? 0 }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @else
+    <div class="bg-white rounded-lg shadow-md p-6 text-center">
+        <p class="text-gray-700">No team data available for this video.</p>
+    </div>
+    @endif
 </div>
 </body>
 </html>

@@ -7,6 +7,7 @@ use App\Models\Video;
 use App\Models\AnalysisEvent;
 use App\Models\Team;
 use App\Models\Player;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -296,38 +297,115 @@ class AnalysisController extends Controller
     }
 
 
-     public function showStats( $videoId)
+    public function showStats($videoId)
     {
-        // Fetch the analysis data
-        $analyses = AnalysisEvent::where('video_id', $videoId)->get();
+        $video = Video::findOrFail($videoId);
+        $teams = Team::where('video_id', $videoId)->get();
         
-        if ($analyses->isEmpty()) {
-            abort(404, 'Analysis not found');
-        }
+        // Get all events for this video
+        $events = AnalysisEvent::with(['team', 'player', 'assistPlayer'])
+            ->where('video_id', $videoId)
+            ->get();
+        
+        // Calculate statistics
+        $stats = $this->calculateStats($events, $teams);
+        
+        return view('football.stats', compact('video', 'teams', 'stats', 'videoId'));
+    }
 
-        // Convert the collection to array format
-        $markers = $analyses->map(function($analysis) {
-            return [
-                'eventType' => $analysis->event_type,
-                'time' => $analysis->time,
-                'endTime' => $analysis->end_time,
-                'team' => $analysis->team ? $analysis->team->name : null,
-                'playerName' => $analysis->player ? $analysis->player->name : null,
-                'jerseyNo' => $analysis->player ? $analysis->player->jersey_number : null,
-                'action' => $analysis->action,
-                'assistPlayerName' => $analysis->assistPlayer ? $analysis->assistPlayer->name : null,
-                'assistJerseyNo' => $analysis->assistPlayer ? $analysis->assistPlayer->jersey_number : null,
-                'color' => $analysis->color,
+    private function calculateStats($events, $teams)
+    {
+        $stats = [
+            'events' => [],
+            'possession' => [
+                'team1' => 0,
+                'team2' => 0,
+            ]
+        ];
+        
+        // Initialize event types
+        $eventTypes = [
+            'Shot' => ['Goal', 'Save', 'Wide', 'Blocked'],
+            'Foul' => ['Yellow Card', 'Red Card'],
+            'Set Play' => ['Kick off', 'Free Kick', 'Throw In', 'Penalty Kick', 'Goal Kick', 'Corner Kick'],
+            'Transition' => ['Transition'],
+            'Offside' => ['Offside'],
+            'Aerial Duel' => ['Aerial Duel'],
+        ];
+        
+        // Initialize stats array
+        foreach ($eventTypes as $eventType => $actions) {
+            $stats['events'][$eventType] = [
+                'actions' => [],
+                'team1' => 0,
+                'team2' => 0,
+                'total' => 0
             ];
-        })->toArray();
-
-        // Debug the data
+            
+            foreach ($actions as $action) {
+                $stats['events'][$eventType]['actions'][$action] = [
+                    'team1' => 0,
+                    'team2' => 0,
+                    'total' => 0
+                ];
+            }
+        }
         
+        // Calculate possession
+        $totalPossessionTime = 0;
+        $team1Possession = 0;
+        $team2Possession = 0;
         
-        // Process the data for stats
-        $stats = $this->processStatsData($markers);
+        foreach ($events as $event) {
+            // Handle possession events
+            if ($event->event_type === 'Possession' && $event->end_time) {
+                $duration = $event->end_time - $event->time;
+                $totalPossessionTime += $duration;
+                
+                if ($event->team_id === $teams[0]->id) {
+                    $team1Possession += $duration;
+                } elseif ($event->team_id === $teams[1]->id) {
+                    $team2Possession += $duration;
+                }
+            }
+            
+            // Skip if event type is not in our list
+            if (!isset($stats['events'][$event->event_type])) {
+                continue;
+            }
+            
+            // Determine team index
+            $teamIndex = null;
+            if ($event->team_id === $teams[0]->id) {
+                $teamIndex = 'team1';
+            } elseif ($event->team_id === $teams[1]->id) {
+                $teamIndex = 'team2';
+            }
+            
+            // Get action name or use event type as default
+            $action = $event->action ?? $event->event_type;
+            
+            // Skip if action is not in our list for this event type
+            if (!isset($stats['events'][$event->event_type]['actions'][$action])) {
+                continue;
+            }
+            
+            // Increment counts
+            if ($teamIndex) {
+                $stats['events'][$event->event_type]['actions'][$action][$teamIndex]++;
+                $stats['events'][$event->event_type]['actions'][$action]['total']++;
+                $stats['events'][$event->event_type][$teamIndex]++;
+                $stats['events'][$event->event_type]['total']++;
+            }
+        }
         
-        return view('football.stats', compact('videoId', 'stats'));
+        // Calculate possession percentages
+        if ($totalPossessionTime > 0) {
+            $stats['possession']['team1'] = round(($team1Possession / $totalPossessionTime) * 100);
+            $stats['possession']['team2'] = round(($team2Possession / $totalPossessionTime) * 100);
+        }
+        
+        return $stats;
     }
 
     public function showFilter($videoId)
@@ -381,46 +459,25 @@ class AnalysisController extends Controller
         return view('football.filter', compact('videoId', 'teams', 'video', 'analysisData'));
     }
     
-    private function processStatsData($markers)
+    public function downloadPdf($videoId)
     {
-        // Process markers to generate stats
-        $stats = [
-            'totalEvents' => count($markers),
-            'eventsByType' => [],
-            'eventsByTeam' => [],
-            '+goals' => 0,
-            'shots' => 0,
-            'fouls' => 0,
-        ];
+        // Get the same data you use for the stats page
+        $video = Video::findOrFail($videoId);
+        $teams = Team::where('video_id', $videoId)->get();
+        $events = AnalysisEvent::with(['team', 'player', 'assistPlayer'])
+            ->where('video_id', $videoId)
+            ->get();
+        $teams = Team::where('video_id', $videoId)->get();
+        $stats = $this->calculateStats($events, $teams); // Use the existing calculateStats method
         
-        foreach ($markers as $marker) {
-            // Count by event type
-            if (!isset($stats['eventsByType'][$marker['eventType']])) {
-                $stats['eventsByType'][$marker['eventType']] = 0;
-            }
-            $stats['eventsByType'][$marker['eventType']]++;
-            
-            // Count by team
-            if (!empty($marker['team'])) {
-                if (!isset($stats['eventsByTeam'][$marker['team']])) {
-                    $stats['eventsByTeam'][$marker['team']] = 0;
-                }
-                $stats['eventsByTeam'][$marker['team']]++;
-            }
-            
-            // Count specific events
-            if ($marker['eventType'] === 'Shot') {
-                $stats['shots']++;
-                if ($marker['action'] === 'Goal') {
-                    $stats['goals']++;
-                }
-            }
-            
-            if ($marker['eventType'] === 'Foul') {
-                $stats['fouls']++;
-            }
-        }
-        // dd($stats);
-        return $stats;
+        $pdf = Pdf::loadView('football.pdf', [
+            'video' => $video,
+            'teams' => $teams,
+            'stats' => $stats,
+            'videoId' => $videoId
+        ]);
+        
+        return $pdf->download('match_statistics_' . $video->title . '.pdf');
     }
+
 }

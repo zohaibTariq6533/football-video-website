@@ -1602,14 +1602,14 @@ const saveAllAnalysis = useCallback(async () => {
                     onClick={handleViewFilter}
                     disabled={!analysisId}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="View Detailed Report"
+                    title="Filter Events"
                 >
                     {/* <ClipboardList  /> */}
                     <Funnel size={18} />
                 </button>
 
                 {/* // Export button */}
-                <button
+                {/* <button
                     onClick={() => {
                         if (analysisId) {
                             window.open(`/video/${analysisId}/export`, '_blank');
@@ -1622,7 +1622,7 @@ const saveAllAnalysis = useCallback(async () => {
                     title="Export Data"
                 >
                     <ExternalLink size={18} />
-                </button>
+                </button> */}
               </div>
               <div className="flex flex-row-reverse">
                 <button

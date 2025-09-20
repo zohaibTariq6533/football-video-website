@@ -63,11 +63,10 @@
                                 <i class="fas fa-video mr-3 text-lg"></i>
                                 <span>Analyze Video</span>
                             </a>
-                            <a href="{{route('video.analysis.filter',$video->id)}}"  target="_blank"
+                            {{-- <a href="{{route('video.analysis.filter',$video->id)}}"  target="_blank"
                                 class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
-                                {{-- <i class="fas fa-video mr-3 text-lg"></i> --}}
                                 <span>Filter Video</span>
-                            </a>
+                            </a> --}}
                             {{-- <button onclick="confirmDelete('{{ $video->id }}', '{{ $video->title }}')"
                                 class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

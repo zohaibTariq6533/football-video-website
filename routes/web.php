@@ -94,4 +94,6 @@ Route::middleware(['isUserValid',AdminCheck::class])->group(function(){
 
     Route::get('/admin/dashboard/video-analyze/filter/{videoId}', [AnalysisController::class, 'showFilter'])->name('video.analysis.filter');
 
+    Route::get('/stats/download/{videoId}', [AnalysisController::class, 'downloadPdf'])->name('stats.download.pdf');
+
 });
