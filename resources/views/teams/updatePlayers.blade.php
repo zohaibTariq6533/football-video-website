@@ -5,23 +5,24 @@
             <!-- Header -->
             <div class="mb-8 flex flex-col justify-center">
                 <div class="flex items-center space-x-3 mb-2">
-                    <div
-                        class="w-12 h-12 bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg">
                         <i class="fas fa-users text-white text-xl"></i>
                     </div>
-
-                    <!-- Make title and paragraph side-by-side -->
                     <div class="flex flex-row items-center space-x-4">
-                        {{-- <h1 class="text-3xl font-bold text-gray-800">{{ $video->title }}</h1> --}}
-                        <h1 class="text-3xl font-bold text-gray-800">Update</h1>
-                        <p class="text-gray-800">Create two teams and add players to get started</p>
+                        <h1 class="text-3xl font-bold text-gray-800">Update Teams</h1>
+                        <p class="text-gray-800">Edit team information and players</p>
                     </div>
                 </div>
             </div>
 
             <!-- Main Form Container -->
-            <form action="#" method="POST" id="mainTeamsForm">
+            <form action="{{ route('teams.updateBoth', ['video_id' => $video_id]) }}" method="POST" id="updateTeamsForm">
                 @csrf
+                @method('PUT')
+
+                <!-- Hidden inputs for team IDs -->
+                <input type="hidden" name="team1_id" value="{{ $teams['team1']['id'] }}">
+                <input type="hidden" name="team2_id" value="{{ $teams['team2']['id'] }}">
 
                 <!-- Dual Team Forms -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -37,8 +38,7 @@
                         <div class="p-6">
                             <!-- Team 1 Information Section -->
                             <div class="mb-6">
-                                <div
-                                    class="bg-blue-50 rounded-xl p-4 border-2 border-blue-100 hover:border-blue-200 transition-all duration-200">
+                                <div class="bg-blue-50 rounded-xl p-4 border-2 border-blue-100 hover:border-blue-200 transition-all duration-200">
                                     <label for="team1_name" class="block text-sm font-semibold text-gray-700 mb-3">
                                         <i class="fas fa-flag text-blue-900 mr-2"></i>
                                         Team Name
@@ -46,7 +46,7 @@
                                     <input type="text" id="team1_name" name="team1_name" required
                                         placeholder="Enter team 1 name..."
                                         class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-900 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-800 placeholder-gray-400 bg-white hover:bg-gray-50 focus:bg-white"
-                                        value="{{ old('team1_name') }}">
+                                        value="{{ $teams['team1']['name'] }}">
                                     @error('team1_name')
                                         <p class="mt-2 text-sm text-red-600 flex items-center">
                                             <i class="fas fa-exclamation-circle mr-1"></i>
@@ -58,51 +58,40 @@
 
                             <!-- Add Player Section for Team 1 -->
                             <div class="mb-6">
-                                <div
-                                    class="flex items-center justify-between bg-gray-50 rounded-xl p-4 border-2 border-gray-100 hover:border-gray-200 transition-all duration-200">
-                                    <span class="text-lg font-semibold text-gray-800">Add Player</span>
+                                <div class="flex items-center justify-between bg-gray-50 rounded-xl p-4 border-2 border-gray-100 hover:border-gray-200 transition-all duration-200">
+                                    <span class="text-lg font-semibold text-gray-800">Players</span>
                                     <button type="button" onclick="openPlayerModal('team1')" id="addPlayerBtn1"
                                         class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
                                         <i class="fas fa-plus"></i>
+                                        <span>Add Player</span>
                                     </button>
                                 </div>
 
                                 <!-- Players List for Team 1 -->
                                 <div id="playersList1" class="mt-4 space-y-3">
-                                    <!-- Players will be added here dynamically -->
-                                    <div class="flex items-center space-x-4">
-                                        <div
-                                            class="w-10 h-10 bg-gradient-to-r from-${cardColor}-900 to-${cardColor}-800 rounded-full flex items-center justify-center">
-                                            <span class="text-white font-bold text-sm">01</span>
+                                    @foreach ($teams['team1']['players'] as $player)
+                                    <div class="bg-blue-50 rounded-xl p-4 border-2 border-blue-100 flex items-center justify-between" data-player-id="{{ $player['id'] }}">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-10 h-10 bg-gradient-to-r from-blue-900 to-blue-800 rounded-full flex items-center justify-center">
+                                                <span class="text-white font-bold text-sm">{{ $player['number'] }}</span>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-semibold text-gray-800">{{ $player['first_name'] }} {{ $player['last_name'] }}</h4>
+                                                <p class="text-sm text-gray-600">Jersey #{{ $player['number'] }}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 class="font-semibold text-gray-800">Henry</h4>
-                                            <p class="text-sm text-gray-600">mate</p>
-                                        </div>
+                                        <button type="button" onclick="removePlayer(this, '{{ $player['number'] }}', '{{ $player['id'] }}', 'team1')" class="text-red-500 hover:text-red-700 transition-colors">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </div>
-                                    <button type="button"
-                                        onclick="removePlayer(this, '${number}', '${playerData.id}', '${team}')"
-                                        class="text-red-500 hover:text-red-700 transition-colors">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    @endforeach
                                 </div>
 
                                 <!-- Player count display for Team 1 -->
                                 <div class="mt-4 text-center">
-                                    <span id="playerCount1" class="text-sm text-gray-600">0 / 22 players added</span>
+                                    <span id="playerCount1" class="text-sm text-gray-600">{{ count($teams['team1']['players']) }} / {{ $max_players }} players added</span>
                                 </div>
                             </div>
-
-                            <!-- Success Message for Team 1 -->
-                            @if (session('success_team1'))
-                                <div
-                                    class="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center space-x-3">
-                                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-check text-white text-sm"></i>
-                                    </div>
-                                    <p class="text-green-800 font-medium">{{ session('success_team1') }}</p>
-                                </div>
-                            @endif
                         </div>
                     </div>
 
@@ -118,8 +107,7 @@
                         <div class="p-6">
                             <!-- Team 2 Information Section -->
                             <div class="mb-6">
-                                <div
-                                    class="bg-green-50 rounded-xl p-4 border-2 border-green-100 hover:border-green-200 transition-all duration-200">
+                                <div class="bg-green-50 rounded-xl p-4 border-2 border-green-100 hover:border-green-200 transition-all duration-200">
                                     <label for="team2_name" class="block text-sm font-semibold text-gray-700 mb-3">
                                         <i class="fas fa-flag text-green-900 mr-2"></i>
                                         Team Name
@@ -127,7 +115,7 @@
                                     <input type="text" id="team2_name" name="team2_name" required
                                         placeholder="Enter team 2 name..."
                                         class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-900 focus:ring-4 focus:ring-green-100 transition-all duration-200 text-gray-800 placeholder-gray-400 bg-white hover:bg-gray-50 focus:bg-white"
-                                        value="{{ old('team2_name') }}">
+                                        value="{{ $teams['team2']['name'] }}">
                                     @error('team2_name')
                                         <p class="mt-2 text-sm text-red-600 flex items-center">
                                             <i class="fas fa-exclamation-circle mr-1"></i>
@@ -139,75 +127,77 @@
 
                             <!-- Add Player Section for Team 2 -->
                             <div class="mb-6">
-                                <div
-                                    class="flex items-center justify-between bg-gray-50 rounded-xl p-4 border-2 border-gray-100 hover:border-gray-200 transition-all duration-200">
-                                    <span class="text-lg font-semibold text-gray-800">Add Player</span>
+                                <div class="flex items-center justify-between bg-gray-50 rounded-xl p-4 border-2 border-gray-100 hover:border-gray-200 transition-all duration-200">
+                                    <span class="text-lg font-semibold text-gray-800">Players</span>
                                     <button type="button" onclick="openPlayerModal('team2')" id="addPlayerBtn2"
                                         class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
                                         <i class="fas fa-plus"></i>
+                                        <span>Add Player</span>
                                     </button>
                                 </div>
 
                                 <!-- Players List for Team 2 -->
                                 <div id="playersList2" class="mt-4 space-y-3">
-                                    <!-- Players will be added here dynamically -->
+                                    @foreach ($teams['team2']['players'] as $player)
+                                    <div class="bg-green-50 rounded-xl p-4 border-2 border-green-100 flex items-center justify-between" data-player-id="{{ $player['id'] }}">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-10 h-10 bg-gradient-to-r from-green-900 to-green-800 rounded-full flex items-center justify-center">
+                                                <span class="text-white font-bold text-sm">{{ $player['number'] }}</span>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-semibold text-gray-800">{{ $player['first_name'] }} {{ $player['last_name'] }}</h4>
+                                                <p class="text-sm text-gray-600">Jersey #{{ $player['number'] }}</p>
+                                            </div>
+                                        </div>
+                                        <button type="button" onclick="removePlayer(this, '{{ $player['number'] }}', '{{ $player['id'] }}', 'team2')" class="text-red-500 hover:text-red-700 transition-colors">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    @endforeach
                                 </div>
 
                                 <!-- Player count display for Team 2 -->
                                 <div class="mt-4 text-center">
-                                    <span id="playerCount2" class="text-sm text-gray-600">0 / 22 players added</span>
+                                    <span id="playerCount2" class="text-sm text-gray-600">{{ count($teams['team2']['players']) }} / {{ $max_players }} players added</span>
                                 </div>
                             </div>
-
-                            <!-- Success Message for Team 2 -->
-                            @if (session('success_team2'))
-                                <div
-                                    class="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center space-x-3">
-                                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-check text-white text-sm"></i>
-                                    </div>
-                                    <p class="text-green-800 font-medium">{{ session('success_team2') }}</p>
-                                </div>
-                            @endif
                         </div>
                     </div>
                 </div>
 
-                <!-- Single Submit Button -->
+                <!-- Submit Button -->
                 <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <div
-                                class="w-10 h-10 bg-gradient-to-r from-purple-900 to-purple-800 rounded-xl flex items-center justify-center">
+                            <div class="w-10 h-10 bg-gradient-to-r from-purple-900 to-purple-800 rounded-xl flex items-center justify-center">
                                 <i class="fas fa-rocket text-white"></i>
                             </div>
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-800">Ready to Create Teams?</h3>
-                                <p class="text-sm text-gray-600">Both teams will be created simultaneously</p>
+                                <h3 class="text-lg font-semibold text-gray-800">Ready to Update Teams?</h3>
+                                <p class="text-sm text-gray-600">Both teams will be updated simultaneously</p>
                             </div>
                         </div>
 
-                        <button type="submit" id="createTeamsBtn"
+                        <button type="submit" id="updateTeamsBtn"
                             class="flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-purple-900 to-purple-800 hover:from-purple-800 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 text-lg">
-                            <i class="fas fa-users"></i>
-                            <span>FINALIZE LINEUPS</span>
+                            <i class="fas fa-save"></i>
+                            <span>UPDATE TEAMS</span>
                             <i class="fas fa-arrow-right"></i>
                         </button>
                     </div>
                 </div>
             </form>
 
-            <!-- Overall Success Message -->
+            <!-- Success and Error Messages -->
             @if (session('success'))
                 <div class="mt-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center space-x-3">
                     <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                         <i class="fas fa-check text-white text-sm"></i>
                     </div>
-                    <p class="text-green-800 font-medium">{{ session('success') }}</p>
+                    <p class="green-800 font-medium">{{ session('success') }}</p>
                 </div>
             @endif
 
-            <!-- Error Messages -->
             @if ($errors->any())
                 <div class="mt-6 bg-red-50 border border-red-200 rounded-xl p-4">
                     <div class="flex items-start space-x-3">
@@ -228,40 +218,22 @@
                     </div>
                 </div>
             @endif
-
-            <!-- Info Card -->
-            <div class="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <div class="flex items-start space-x-3">
-                    <div class="w-6 h-6 bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <i class="fas fa-info text-white text-xs"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-blue-800 font-semibold text-sm mb-1">Getting Started</h3>
-                        <p class="text-blue-700 text-sm">Fill in both team names and add players to each team. When you
-                            click "Create Both Teams", both teams will be created simultaneously. You can create teams with
-                            different numbers of players.</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
     <!-- Player Modal -->
     <div id="playerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95"
-            id="modalContent">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95" id="modalContent">
             <div class="p-6">
                 <!-- Modal Header -->
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-lg flex items-center justify-center"
-                            id="modalIcon">
+                        <div class="w-8 h-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-lg flex items-center justify-center" id="modalIcon">
                             <i class="fas fa-user-plus text-white text-sm"></i>
                         </div>
                         <h3 class="text-xl font-semibold text-gray-800" id="modalTitle">Add New Player</h3>
                     </div>
-                    <button type="button" onclick="closePlayerModal()"
-                        class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <button type="button" onclick="closePlayerModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
@@ -275,8 +247,7 @@
                                 <i class="fas fa-user text-blue-900 mr-2"></i>
                                 First Name
                             </label>
-                            <input type="text" id="modal_first_name" required placeholder="Player's first name..."
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-900 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-800 placeholder-gray-400">
+                            <input type="text" id="modal_first_name" required placeholder="Player's first name..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-900 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-800 placeholder-gray-400">
                         </div>
                         <!-- Last Name -->
                         <div>
@@ -284,8 +255,7 @@
                                 <i class="fas fa-user-tag text-blue-900 mr-2"></i>
                                 Last Name
                             </label>
-                            <input type="text" id="modal_last_name" required placeholder="Player's last name..."
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-900 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-800 placeholder-gray-400">
+                            <input type="text" id="modal_last_name" required placeholder="Player's last name..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-900 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-800 placeholder-gray-400">
                         </div>
                         <!-- Jersey Number -->
                         <div>
@@ -293,19 +263,15 @@
                                 <i class="fas fa-tshirt text-blue-900 mr-2"></i>
                                 Jersey Number
                             </label>
-                            <input type="number" id="modal_number" min="0" max="99" required
-                                placeholder="0-99"
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-900 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-800 placeholder-gray-400">
+                            <input type="number" id="modal_number" min="0" max="99" required placeholder="0-99" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-900 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-800 placeholder-gray-400">
                         </div>
                     </div>
                     <!-- Modal Actions -->
                     <div class="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-gray-100">
-                        <button type="button" onclick="closePlayerModal()"
-                            class="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all duration-200">
+                        <button type="button" onclick="closePlayerModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all duration-200">
                             Cancel
                         </button>
-                        <button type="submit" id="modalSubmitBtn"
-                            class="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                        <button type="submit" id="modalSubmitBtn" class="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
                             <i class="fas fa-plus"></i>
                             <span>Add Player</span>
                         </button>
@@ -319,18 +285,18 @@
         // Team data management
         const teamData = {
             team1: {
-                playerCount: 0,
-                usedNumbers: new Set(),
-                playersArray: []
+                playerCount: {{ count($teams['team1']['players']) }},
+                usedNumbers: new Set(@json(array_column($teams['team1']['players'], 'number'))),
+                playersArray: @json($teams['team1']['players'])
             },
             team2: {
-                playerCount: 0,
-                usedNumbers: new Set(),
-                playersArray: []
+                playerCount: {{ count($teams['team2']['players']) }},
+                usedNumbers: new Set(@json(array_column($teams['team2']['players'], 'number'))),
+                playersArray: @json($teams['team2']['players'])
             }
         };
 
-        const MAX_PLAYERS = 22;
+        const MAX_PLAYERS = {{ $max_players }};
         let currentTeam = '';
 
         function openPlayerModal(team) {
@@ -349,17 +315,13 @@
             const modalSubmitBtn = document.getElementById('modalSubmitBtn');
 
             if (team === 'team1') {
-                modalIcon.className =
-                    'w-8 h-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-lg flex items-center justify-center';
+                modalIcon.className = 'w-8 h-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-lg flex items-center justify-center';
                 modalTitle.textContent = 'Add Player to Team 1';
-                modalSubmitBtn.className =
-                    'flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200';
+                modalSubmitBtn.className = 'flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200';
             } else {
-                modalIcon.className =
-                    'w-8 h-8 bg-gradient-to-r from-green-900 to-green-800 rounded-lg flex items-center justify-center';
+                modalIcon.className = 'w-8 h-8 bg-gradient-to-r from-green-900 to-green-800 rounded-lg flex items-center justify-center';
                 modalTitle.textContent = 'Add Player to Team 2';
-                modalSubmitBtn.className =
-                    'flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200';
+                modalSubmitBtn.className = 'flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200';
             }
 
             document.getElementById('currentTeam').value = team;
@@ -419,7 +381,7 @@
                 firstName: firstName,
                 lastName: lastName,
                 number: number,
-                id: Date.now() + Math.random()
+                id: Date.now() + Math.random() // Temporary ID for new players
             };
             teamInfo.playersArray.push(playerData);
             teamInfo.playerCount++;
@@ -429,29 +391,27 @@
             const playerCard = document.createElement('div');
             const cardColor = team === 'team1' ? 'blue' : 'green';
 
-            playerCard.className =
-                `bg-${cardColor}-50 rounded-xl p-4 border-2 border-${cardColor}-100 flex items-center justify-between`;
+            playerCard.className = `bg-${cardColor}-50 rounded-xl p-4 border-2 border-${cardColor}-100 flex items-center justify-between`;
             playerCard.setAttribute('data-player-id', playerData.id);
             playerCard.innerHTML = `
-        <div class="flex items-center space-x-4">
-            <div class="w-10 h-10 bg-gradient-to-r from-${cardColor}-900 to-${cardColor}-800 rounded-full flex items-center justify-center">
-                <span class="text-white font-bold text-sm">${number}</span>
-            </div>
-            <div>
-                <h4 class="font-semibold text-gray-800">${firstName} ${lastName}</h4>
-                <p class="text-sm text-gray-600">Jersey #${number}</p>
-            </div>
-        </div>
-        <button type="button" onclick="removePlayer(this, '${number}', '${playerData.id}', '${team}')" class="text-red-500 hover:text-red-700 transition-colors">
-            <i class="fas fa-trash"></i>
-        </button>
-    `;
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 bg-gradient-to-r from-${cardColor}-900 to-${cardColor}-800 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">${number}</span>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800">${firstName} ${lastName}</h4>
+                        <p class="text-sm text-gray-600">Jersey #${number}</p>
+                    </div>
+                </div>
+                <button type="button" onclick="removePlayer(this, '${number}', '${playerData.id}', '${team}')" class="text-red-500 hover:text-red-700 transition-colors">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
 
             playersList.appendChild(playerCard);
             updateHiddenInputs(team);
             updatePlayerCount(team);
             updateAddButton(team);
-            updateCreateButton();
             closePlayerModal();
         }
 
@@ -471,34 +431,43 @@
             updateHiddenInputs(team);
             updatePlayerCount(team);
             updateAddButton(team);
-            updateCreateButton();
         }
 
         function updateHiddenInputs(team) {
             const teamInfo = teamData[team];
+            const teamPrefix = team === 'team1' ? 'team1' : 'team2';
 
             // Remove all existing hidden inputs for this team
-            const existingInputs = document.querySelectorAll(`input[name^="${team}_players["]`);
+            const existingInputs = document.querySelectorAll(`input[name^="${teamPrefix}_players["]`);
             existingInputs.forEach(input => input.remove());
 
             // Add hidden inputs with proper sequential indexing
-            const form = document.getElementById('mainTeamsForm');
+            const form = document.getElementById('updateTeamsForm');
             teamInfo.playersArray.forEach((player, index) => {
                 // Create hidden inputs for each player
                 const firstNameInput = document.createElement('input');
                 firstNameInput.type = 'hidden';
-                firstNameInput.name = `${team}_players[${index}][first_name]`;
+                firstNameInput.name = `${teamPrefix}_players[${index}][first_name]`;
                 firstNameInput.value = player.firstName;
 
                 const lastNameInput = document.createElement('input');
                 lastNameInput.type = 'hidden';
-                lastNameInput.name = `${team}_players[${index}][last_name]`;
+                lastNameInput.name = `${teamPrefix}_players[${index}][last_name]`;
                 lastNameInput.value = player.lastName;
 
                 const numberInput = document.createElement('input');
                 numberInput.type = 'hidden';
-                numberInput.name = `${team}_players[${index}][number]`;
+                numberInput.name = `${teamPrefix}_players[${index}][number]`;
                 numberInput.value = player.number;
+
+                // If the player has an ID that is not temporary (i.e., it's an existing player), add it
+                if (player.id && !isNaN(player.id)) {
+                    const idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = `${teamPrefix}_players[${index}][id]`;
+                    idInput.value = player.id;
+                    form.appendChild(idInput);
+                }
 
                 form.appendChild(firstNameInput);
                 form.appendChild(lastNameInput);
@@ -519,42 +488,20 @@
             if (teamInfo.playerCount >= MAX_PLAYERS) {
                 addButton.disabled = true;
                 addButton.classList.add('opacity-50', 'cursor-not-allowed');
-                addButton.classList.remove('hover:from-blue-800', 'hover:to-blue-700', 'hover:from-green-800',
-                    'hover:to-green-700', 'transform', 'hover:-translate-y-0.5');
+                addButton.classList.remove('hover:from-blue-800', 'hover:to-blue-700', 'hover:from-green-800', 'hover:to-green-700', 'transform', 'hover:-translate-y-0.5');
             } else {
                 addButton.disabled = false;
                 addButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 if (team === 'team1') {
-                    addButton.classList.add('hover:from-blue-800', 'hover:to-blue-700', 'transform',
-                        'hover:-translate-y-0.5');
+                    addButton.classList.add('hover:from-blue-800', 'hover:to-blue-700', 'transform', 'hover:-translate-y-0.5');
                 } else {
-                    addButton.classList.add('hover:from-green-800', 'hover:to-green-700', 'transform',
-                        'hover:-translate-y-0.5');
+                    addButton.classList.add('hover:from-green-800', 'hover:to-green-700', 'transform', 'hover:-translate-y-0.5');
                 }
             }
         }
 
-        function updateCreateButton() {
-            const createBtn = document.getElementById('createTeamsBtn');
-            const team1Name = document.getElementById('team1_name').value.trim();
-            const team2Name = document.getElementById('team2_name').value.trim();
-
-            // Enable button only if both team names are filled
-            if (team1Name && team2Name) {
-                createBtn.disabled = false;
-                createBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                createBtn.classList.add('hover:from-purple-800', 'hover:to-purple-700', 'transform',
-                    'hover:-translate-y-0.5');
-            } else {
-                createBtn.disabled = true;
-                createBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                createBtn.classList.remove('hover:from-purple-800', 'hover:to-purple-700', 'transform',
-                    'hover:-translate-y-0.5');
-            }
-        }
-
         // Add form validation before submission
-        document.getElementById('mainTeamsForm').addEventListener('submit', function(e) {
+        document.getElementById('updateTeamsForm').addEventListener('submit', function(e) {
             // Update hidden inputs for both teams
             updateHiddenInputs('team1');
             updateHiddenInputs('team2');
@@ -564,7 +511,7 @@
 
             if (!team1Name || !team2Name) {
                 e.preventDefault();
-                alert('Please fill in both team names before creating teams.');
+                alert('Please fill in both team names before updating teams.');
                 return;
             }
 
@@ -575,10 +522,6 @@
             }, 100);
         });
 
-        // Monitor team name inputs to update create button
-        document.getElementById('team1_name').addEventListener('input', updateCreateButton);
-        document.getElementById('team2_name').addEventListener('input', updateCreateButton);
-
         // Close modal when clicking outside
         document.getElementById('playerModal').addEventListener('click', function(e) {
             if (e.target === this) {
@@ -586,7 +529,8 @@
             }
         });
 
-        // Initialize create button state
-        updateCreateButton();
+        // Initialize add button states
+        updateAddButton('team1');
+        updateAddButton('team2');
     </script>
 @endsection

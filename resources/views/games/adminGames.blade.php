@@ -21,7 +21,7 @@
             <table class="w-full">
                 <thead class="bg-slate-900">
                     <tr class="bg-slate-900 text-white">
-                        <th class="px-4 py-3 text-center font-medium text-center align-middle">MN</th>
+                        <th class="px-4 py-3 font-medium text-center align-middle">MN</th>
                         <th class="px-4 py-3 text-center font-sm ">Match ID</th>
                         <th class="px-4 py-3 text-center font-medium">Match Title</th>
                         <th class="px-4 py-3 text-center font-medium">Date of creation</th>
@@ -43,7 +43,7 @@
                                     <i class="fas fa-video mr-3 text-xl"></i>
                                     Analyze
                                 </a></td>
-                            <td class="px-4 py-3 text-center"><a href="#"><i class="fa-solid fa-pen-to-square text-2xl text-slate-600"></i></a></td>
+                            <td class="px-4 py-3 text-center"><a href="{{ route('updateTeamPage', ['video_id' => $game->id]) }}"><i class="fa-solid fa-pen-to-square text-2xl text-slate-600"></i></a></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -82,7 +82,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 text-center">
                                 {{ $game->id }}
-                            </td>
+                            </td>Edit Lineups
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
                                 {{ $game->title }}
                             </td>

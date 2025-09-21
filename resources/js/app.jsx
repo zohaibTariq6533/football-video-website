@@ -1,23 +1,10 @@
-// import React from 'react';
-// import { createRoot } from 'react-dom/client';
-// import FootballMatchAnalyzer from './components/FootballMatchAnalyzerEnhanced';
-// // import FootballMatchAnalyzer from './components/FootballMatchAnalyzer';
-
-// // Mount the React component
-// const container = document.getElementById('football-analyzer');
-// if (container) {
-//     const root = createRoot(container);
-//     root.render(<FootballMatchAnalyzer />);
-// }
-
-
 import './bootstrap';
 import '../css/app.css';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import FootballMatchAnalyzer from './components/FootballMatchAnalyzerEnhanced';
-import StatisticsPage from './components/StatisticsPage';
+// import StatisticsPage from './components/StatisticsPage';
 import FootballMatchFilter from './components/FootballMatchFilter';
 
 // Function to safely parse JSON data from dataset
@@ -48,28 +35,6 @@ const getDataFromElement = (element) => {
 // Mount components based on presence of mount points
 const analyzerContainer = document.getElementById('football-analyzer');
 const filterContainer = document.getElementById('football-filter');
-
-// Mount Football Analyzer if present
-// if (analyzerContainer) {
-//     const analyzerData = getDataFromElement(analyzerContainer);
-//     const root = createRoot(analyzerContainer);
-//     root.render(
-//         <Router>
-//             <Routes>
-//                 <Route 
-//                     path="/admin/dashboard/video-analyze/:matchId" 
-//                     element={
-//                         <FootballMatchAnalyzer 
-//                             initialTeams={analyzerData?.teams}
-//                             initialVideo={analyzerData?.video}
-//                             videoId={analyzerData?.videoId}
-//                         />
-//                     } 
-//                 />
-//             </Routes>
-//         </Router>
-//     );
-// }
 
 if (analyzerContainer) {
     const analyzerData = getDataFromElement(analyzerContainer);
