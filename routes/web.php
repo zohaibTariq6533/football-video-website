@@ -66,8 +66,9 @@ Route::middleware(['isUserValid',AdminCheck::class])->group(function(){
     Route::post('/admin/teams/add-new-teams/add/{video_id}',[TeamController::class,'createTeam'])->name('createTeams')->withoutMiddleware(AdminCheck::class);
 
     // Update team players or lineup
-    Route::get('/admin/games/update-game/{video_id}/update-teams',[TeamController::class,'toUpdateTeam'])->name('updateTeamPage')->withoutMiddleware(AdminCheck::class);
-    Route::get('/admin/games/update-game/{video_id}/update-teams',[TeamController::class,'toUpdateTeam'])->name('updateTeamPage')->withoutMiddleware(AdminCheck::class);
+    Route::get('/admin/games/update-game/{video_id}/edit-teams',[TeamController::class,'toUpdateTeams'])->name('updateTeamPage')->withoutMiddleware(AdminCheck::class);
+
+    Route::put('/admin/games/update-game/{video_id}/update-teams',[TeamController::class,'updateTeams'])->name('updateTeam')->withoutMiddleware(AdminCheck::class);
 
     Route::get('/admin/teams/update-team',function(){
         return view('teams.updatePlayers');

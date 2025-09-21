@@ -316,7 +316,7 @@ class TeamController extends Controller
     //     return view('update-team', $data);
     // }
 
-    public function toUpdateTeam(Request $req, string $video_id)
+    public function toUpdateTeams(string $video_id)
     {
         // Get both teams for the video
         $teams = DB::table('teams')
@@ -509,20 +509,20 @@ class TeamController extends Controller
     //     }
     // }
 
-    public function updateBothTeams(Request $req, string $video_id)
+    public function updateTeams(Request $req, string $video_id)
     {
         $validated = $req->validate([
-            'team1_id' => 'required|integer|exists:teams,id',
+            'team1_id' => 'required|exists:teams,id',
             'team1_name' => 'required|string|max:255',
             'team1_players' => 'nullable|array|max:22',
-            'team1_players.*.id' => 'nullable|integer|exists:players,id',
+            'team1_players.*.id' => 'nullable|integer', // Removed exists:players,id
             'team1_players.*.first_name' => 'required|string|max:255',
             'team1_players.*.last_name' => 'required|string|max:255',
             'team1_players.*.number' => 'required|integer|min:0|max:99',
-            'team2_id' => 'required|integer|exists:teams,id',
+            'team2_id' => 'required|exists:teams,id',
             'team2_name' => 'required|string|max:255',
             'team2_players' => 'nullable|array|max:22',
-            'team2_players.*.id' => 'nullable|integer|exists:players,id',
+            'team2_players.*.id' => 'nullable|integer', // Removed exists:players,id
             'team2_players.*.first_name' => 'required|string|max:255',
             'team2_players.*.last_name' => 'required|string|max:255',
             'team2_players.*.number' => 'required|integer|min:0|max:99',
@@ -598,7 +598,8 @@ class TeamController extends Controller
                 $updatedPlayerIds = [];
 
                 foreach ($teamData['players'] as $player) {
-                    if (isset($player['id']) && in_array($player['id'], $currentPlayerIds)) {
+                    // Check if player has an ID and it exists in the database
+                    if (isset($player['id']) && is_numeric($player['id']) && in_array($player['id'], $currentPlayerIds)) {
                         // Existing player
                         $existingPlayers[] = [
                             'id' => $player['id'],

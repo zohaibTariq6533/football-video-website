@@ -82,7 +82,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 text-center">
                                 {{ $game->id }}
-                            </td>Edit Lineups
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
                                 {{ $game->title }}
                             </td>

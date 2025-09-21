@@ -16,7 +16,7 @@
             </div>
 
             <!-- Main Form Container -->
-            <form action="{{ route('teams.updateBoth', ['video_id' => $video_id]) }}" method="POST" id="updateTeamsForm">
+            <form action="{{ route('updateTeam', ['video_id' => $video_id]) }}" method="POST" id="updateTeamsForm">
                 @csrf
                 @method('PUT')
 
@@ -282,255 +282,255 @@
     </div>
 
     <script>
-        // Team data management
-        const teamData = {
-            team1: {
-                playerCount: {{ count($teams['team1']['players']) }},
-                usedNumbers: new Set(@json(array_column($teams['team1']['players'], 'number'))),
-                playersArray: @json($teams['team1']['players'])
-            },
-            team2: {
-                playerCount: {{ count($teams['team2']['players']) }},
-                usedNumbers: new Set(@json(array_column($teams['team2']['players'], 'number'))),
-                playersArray: @json($teams['team2']['players'])
-            }
+    // Team data management
+    const teamData = {
+        team1: {
+            playerCount: {{ count($teams['team1']['players']) }},
+            usedNumbers: new Set(@json(array_column($teams['team1']['players'], 'number'))),
+            playersArray: @json($teams['team1']['players'])
+        },
+        team2: {
+            playerCount: {{ count($teams['team2']['players']) }},
+            usedNumbers: new Set(@json(array_column($teams['team2']['players'], 'number'))),
+            playersArray: @json($teams['team2']['players'])
+        }
+    };
+
+    const MAX_PLAYERS = {{ $max_players }};
+    let currentTeam = '';
+
+    function openPlayerModal(team) {
+        currentTeam = team;
+        const teamInfo = teamData[team];
+
+        // Check if maximum players reached
+        if (teamInfo.playerCount >= MAX_PLAYERS) {
+            alert(`Maximum of ${MAX_PLAYERS} players allowed per team.`);
+            return;
+        }
+
+        // Update modal styling based on team
+        const modalIcon = document.getElementById('modalIcon');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalSubmitBtn = document.getElementById('modalSubmitBtn');
+
+        if (team === 'team1') {
+            modalIcon.className = 'w-8 h-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-lg flex items-center justify-center';
+            modalTitle.textContent = 'Add Player to Team 1';
+            modalSubmitBtn.className = 'flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200';
+        } else {
+            modalIcon.className = 'w-8 h-8 bg-gradient-to-r from-green-900 to-green-800 rounded-lg flex items-center justify-center';
+            modalTitle.textContent = 'Add Player to Team 2';
+            modalSubmitBtn.className = 'flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200';
+        }
+
+        document.getElementById('currentTeam').value = team;
+
+        const modal = document.getElementById('playerModal');
+        const modalContent = document.getElementById('modalContent');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closePlayerModal() {
+        const modal = document.getElementById('playerModal');
+        const modalContent = document.getElementById('modalContent');
+        modalContent.classList.remove('scale-100');
+        modalContent.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            document.getElementById('playerForm').reset();
+            currentTeam = '';
+        }, 300);
+    }
+
+    function addPlayer(event) {
+        event.preventDefault();
+
+        const team = document.getElementById('currentTeam').value;
+        const teamInfo = teamData[team];
+
+        // Check if maximum players reached
+        if (teamInfo.playerCount >= MAX_PLAYERS) {
+            alert(`Maximum of ${MAX_PLAYERS} players allowed per team.`);
+            return;
+        }
+
+        const firstName = document.getElementById('modal_first_name').value.trim();
+        const lastName = document.getElementById('modal_last_name').value.trim();
+        const number = document.getElementById('modal_number').value;
+
+        // Validate input
+        if (!firstName || !lastName || !number) {
+            alert('Please fill in all fields.');
+            return;
+        }
+
+        // Check if jersey number is already used in this team
+        if (teamInfo.usedNumbers.has(number)) {
+            alert(`Jersey number ${number} is already taken in this team. Please choose a different number.`);
+            return;
+        }
+
+        // Add to used numbers and players array
+        teamInfo.usedNumbers.add(number);
+        const playerData = {
+            first_name: firstName,
+            last_name: lastName,
+            number: number,
+            id: Date.now() + Math.random() // Temporary ID for new players
         };
+        teamInfo.playersArray.push(playerData);
+        teamInfo.playerCount++;
 
-        const MAX_PLAYERS = {{ $max_players }};
-        let currentTeam = '';
+        // Create player card
+        const playersList = document.getElementById(`playersList${team === 'team1' ? '1' : '2'}`);
+        const playerCard = document.createElement('div');
+        const cardColor = team === 'team1' ? 'blue' : 'green';
 
-        function openPlayerModal(team) {
-            currentTeam = team;
-            const teamInfo = teamData[team];
-
-            // Check if maximum players reached
-            if (teamInfo.playerCount >= MAX_PLAYERS) {
-                alert(`Maximum of ${MAX_PLAYERS} players allowed per team.`);
-                return;
-            }
-
-            // Update modal styling based on team
-            const modalIcon = document.getElementById('modalIcon');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalSubmitBtn = document.getElementById('modalSubmitBtn');
-
-            if (team === 'team1') {
-                modalIcon.className = 'w-8 h-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-lg flex items-center justify-center';
-                modalTitle.textContent = 'Add Player to Team 1';
-                modalSubmitBtn.className = 'flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200';
-            } else {
-                modalIcon.className = 'w-8 h-8 bg-gradient-to-r from-green-900 to-green-800 rounded-lg flex items-center justify-center';
-                modalTitle.textContent = 'Add Player to Team 2';
-                modalSubmitBtn.className = 'flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200';
-            }
-
-            document.getElementById('currentTeam').value = team;
-
-            const modal = document.getElementById('playerModal');
-            const modalContent = document.getElementById('modalContent');
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modalContent.classList.remove('scale-95');
-                modalContent.classList.add('scale-100');
-            }, 10);
-        }
-
-        function closePlayerModal() {
-            const modal = document.getElementById('playerModal');
-            const modalContent = document.getElementById('modalContent');
-            modalContent.classList.remove('scale-100');
-            modalContent.classList.add('scale-95');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.getElementById('playerForm').reset();
-                currentTeam = '';
-            }, 300);
-        }
-
-        function addPlayer(event) {
-            event.preventDefault();
-
-            const team = document.getElementById('currentTeam').value;
-            const teamInfo = teamData[team];
-
-            // Check if maximum players reached
-            if (teamInfo.playerCount >= MAX_PLAYERS) {
-                alert(`Maximum of ${MAX_PLAYERS} players allowed per team.`);
-                return;
-            }
-
-            const firstName = document.getElementById('modal_first_name').value.trim();
-            const lastName = document.getElementById('modal_last_name').value.trim();
-            const number = document.getElementById('modal_number').value;
-
-            // Validate input
-            if (!firstName || !lastName || !number) {
-                alert('Please fill in all fields.');
-                return;
-            }
-
-            // Check if jersey number is already used in this team
-            if (teamInfo.usedNumbers.has(number)) {
-                alert(`Jersey number ${number} is already taken in this team. Please choose a different number.`);
-                return;
-            }
-
-            // Add to used numbers and players array
-            teamInfo.usedNumbers.add(number);
-            const playerData = {
-                firstName: firstName,
-                lastName: lastName,
-                number: number,
-                id: Date.now() + Math.random() // Temporary ID for new players
-            };
-            teamInfo.playersArray.push(playerData);
-            teamInfo.playerCount++;
-
-            // Create player card
-            const playersList = document.getElementById(`playersList${team === 'team1' ? '1' : '2'}`);
-            const playerCard = document.createElement('div');
-            const cardColor = team === 'team1' ? 'blue' : 'green';
-
-            playerCard.className = `bg-${cardColor}-50 rounded-xl p-4 border-2 border-${cardColor}-100 flex items-center justify-between`;
-            playerCard.setAttribute('data-player-id', playerData.id);
-            playerCard.innerHTML = `
-                <div class="flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-gradient-to-r from-${cardColor}-900 to-${cardColor}-800 rounded-full flex items-center justify-center">
-                        <span class="text-white font-bold text-sm">${number}</span>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold text-gray-800">${firstName} ${lastName}</h4>
-                        <p class="text-sm text-gray-600">Jersey #${number}</p>
-                    </div>
+        playerCard.className = `bg-${cardColor}-50 rounded-xl p-4 border-2 border-${cardColor}-100 flex items-center justify-between`;
+        playerCard.setAttribute('data-player-id', playerData.id);
+        playerCard.innerHTML = `
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-${cardColor}-900 to-${cardColor}-800 rounded-full flex items-center justify-center">
+                    <span class="text-white font-bold text-sm">${playerData.number}</span>
                 </div>
-                <button type="button" onclick="removePlayer(this, '${number}', '${playerData.id}', '${team}')" class="text-red-500 hover:text-red-700 transition-colors">
-                    <i class="fas fa-trash"></i>
-                </button>
-            `;
+                <div>
+                    <h4 class="font-semibold text-gray-800">${playerData.first_name} ${playerData.last_name}</h4>
+                    <p class="text-sm text-gray-600">Jersey #${playerData.number}</p>
+                </div>
+            </div>
+            <button type="button" onclick="removePlayer(this, '${playerData.number}', '${playerData.id}', '${team}')" class="text-red-500 hover:text-red-700 transition-colors">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
 
-            playersList.appendChild(playerCard);
-            updateHiddenInputs(team);
-            updatePlayerCount(team);
-            updateAddButton(team);
+        playersList.appendChild(playerCard);
+        updateHiddenInputs(team);
+        updatePlayerCount(team);
+        updateAddButton(team);
+        closePlayerModal();
+    }
+
+    function removePlayer(button, number, playerId, team) {
+        const teamInfo = teamData[team];
+
+        teamInfo.usedNumbers.delete(number);
+        teamInfo.playerCount--;
+
+        // Remove from players array
+        teamInfo.playersArray = teamInfo.playersArray.filter(player => player.id != playerId);
+
+        // Remove the card
+        button.closest(`[data-player-id="${playerId}"]`).remove();
+
+        // Update hidden inputs to maintain proper indexing
+        updateHiddenInputs(team);
+        updatePlayerCount(team);
+        updateAddButton(team);
+    }
+
+    function updateHiddenInputs(team) {
+    const teamInfo = teamData[team];
+    const teamPrefix = team === 'team1' ? 'team1' : 'team2';
+
+    // Remove all existing hidden inputs for this team
+    const existingInputs = document.querySelectorAll(`input[name^="${teamPrefix}_players["]`);
+    existingInputs.forEach(input => input.remove());
+
+    // Add hidden inputs with proper sequential indexing
+    const form = document.getElementById('updateTeamsForm');
+    teamInfo.playersArray.forEach((player, index) => {
+        // Create hidden inputs for each player
+        const firstNameInput = document.createElement('input');
+        firstNameInput.type = 'hidden';
+        firstNameInput.name = `${teamPrefix}_players[${index}][first_name]`;
+        firstNameInput.value = player.first_name;
+
+        const lastNameInput = document.createElement('input');
+        lastNameInput.type = 'hidden';
+        lastNameInput.name = `${teamPrefix}_players[${index}][last_name]`;
+        lastNameInput.value = player.last_name;
+
+        const numberInput = document.createElement('input');
+        numberInput.type = 'hidden';
+        numberInput.name = `${teamPrefix}_players[${index}][number]`;
+        numberInput.value = player.number;
+
+        // Only add ID input for existing players (those with a numeric ID)
+        if (player.id && !isNaN(player.id) && Number.isInteger(Number(player.id))) {
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = `${teamPrefix}_players[${index}][id]`;
+            idInput.value = player.id;
+            form.appendChild(idInput);
+        }
+
+        form.appendChild(firstNameInput);
+        form.appendChild(lastNameInput);
+        form.appendChild(numberInput);
+    });
+}
+
+    function updatePlayerCount(team) {
+        const teamInfo = teamData[team];
+        const countElement = document.getElementById(`playerCount${team === 'team1' ? '1' : '2'}`);
+        countElement.textContent = `${teamInfo.playerCount} / ${MAX_PLAYERS} players added`;
+    }
+
+    function updateAddButton(team) {
+        const teamInfo = teamData[team];
+        const addButton = document.getElementById(`addPlayerBtn${team === 'team1' ? '1' : '2'}`);
+
+        if (teamInfo.playerCount >= MAX_PLAYERS) {
+            addButton.disabled = true;
+            addButton.classList.add('opacity-50', 'cursor-not-allowed');
+            addButton.classList.remove('hover:from-blue-800', 'hover:to-blue-700', 'hover:from-green-800', 'hover:to-green-700', 'transform', 'hover:-translate-y-0.5');
+        } else {
+            addButton.disabled = false;
+            addButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            if (team === 'team1') {
+                addButton.classList.add('hover:from-blue-800', 'hover:to-blue-700', 'transform', 'hover:-translate-y-0.5');
+            } else {
+                addButton.classList.add('hover:from-green-800', 'hover:to-green-700', 'transform', 'hover:-translate-y-0.5');
+            }
+        }
+    }
+
+    // Add form validation before submission
+    document.getElementById('updateTeamsForm').addEventListener('submit', function(e) {
+        // Update hidden inputs for both teams
+        updateHiddenInputs('team1');
+        updateHiddenInputs('team2');
+
+        const team1Name = document.getElementById('team1_name').value.trim();
+        const team2Name = document.getElementById('team2_name').value.trim();
+
+        if (!team1Name || !team2Name) {
+            e.preventDefault();
+            alert('Please fill in both team names before updating teams.');
+            return;
+        }
+
+        // Add a small delay to ensure all inputs are properly set
+        e.preventDefault();
+        setTimeout(() => {
+            this.submit();
+        }, 100);
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('playerModal').addEventListener('click', function(e) {
+        if (e.target === this) {
             closePlayerModal();
         }
+    });
 
-        function removePlayer(button, number, playerId, team) {
-            const teamInfo = teamData[team];
-
-            teamInfo.usedNumbers.delete(number);
-            teamInfo.playerCount--;
-
-            // Remove from players array
-            teamInfo.playersArray = teamInfo.playersArray.filter(player => player.id != playerId);
-
-            // Remove the card
-            button.closest(`[data-player-id="${playerId}"]`).remove();
-
-            // Update hidden inputs to maintain proper indexing
-            updateHiddenInputs(team);
-            updatePlayerCount(team);
-            updateAddButton(team);
-        }
-
-        function updateHiddenInputs(team) {
-            const teamInfo = teamData[team];
-            const teamPrefix = team === 'team1' ? 'team1' : 'team2';
-
-            // Remove all existing hidden inputs for this team
-            const existingInputs = document.querySelectorAll(`input[name^="${teamPrefix}_players["]`);
-            existingInputs.forEach(input => input.remove());
-
-            // Add hidden inputs with proper sequential indexing
-            const form = document.getElementById('updateTeamsForm');
-            teamInfo.playersArray.forEach((player, index) => {
-                // Create hidden inputs for each player
-                const firstNameInput = document.createElement('input');
-                firstNameInput.type = 'hidden';
-                firstNameInput.name = `${teamPrefix}_players[${index}][first_name]`;
-                firstNameInput.value = player.firstName;
-
-                const lastNameInput = document.createElement('input');
-                lastNameInput.type = 'hidden';
-                lastNameInput.name = `${teamPrefix}_players[${index}][last_name]`;
-                lastNameInput.value = player.lastName;
-
-                const numberInput = document.createElement('input');
-                numberInput.type = 'hidden';
-                numberInput.name = `${teamPrefix}_players[${index}][number]`;
-                numberInput.value = player.number;
-
-                // If the player has an ID that is not temporary (i.e., it's an existing player), add it
-                if (player.id && !isNaN(player.id)) {
-                    const idInput = document.createElement('input');
-                    idInput.type = 'hidden';
-                    idInput.name = `${teamPrefix}_players[${index}][id]`;
-                    idInput.value = player.id;
-                    form.appendChild(idInput);
-                }
-
-                form.appendChild(firstNameInput);
-                form.appendChild(lastNameInput);
-                form.appendChild(numberInput);
-            });
-        }
-
-        function updatePlayerCount(team) {
-            const teamInfo = teamData[team];
-            const countElement = document.getElementById(`playerCount${team === 'team1' ? '1' : '2'}`);
-            countElement.textContent = `${teamInfo.playerCount} / ${MAX_PLAYERS} players added`;
-        }
-
-        function updateAddButton(team) {
-            const teamInfo = teamData[team];
-            const addButton = document.getElementById(`addPlayerBtn${team === 'team1' ? '1' : '2'}`);
-
-            if (teamInfo.playerCount >= MAX_PLAYERS) {
-                addButton.disabled = true;
-                addButton.classList.add('opacity-50', 'cursor-not-allowed');
-                addButton.classList.remove('hover:from-blue-800', 'hover:to-blue-700', 'hover:from-green-800', 'hover:to-green-700', 'transform', 'hover:-translate-y-0.5');
-            } else {
-                addButton.disabled = false;
-                addButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                if (team === 'team1') {
-                    addButton.classList.add('hover:from-blue-800', 'hover:to-blue-700', 'transform', 'hover:-translate-y-0.5');
-                } else {
-                    addButton.classList.add('hover:from-green-800', 'hover:to-green-700', 'transform', 'hover:-translate-y-0.5');
-                }
-            }
-        }
-
-        // Add form validation before submission
-        document.getElementById('updateTeamsForm').addEventListener('submit', function(e) {
-            // Update hidden inputs for both teams
-            updateHiddenInputs('team1');
-            updateHiddenInputs('team2');
-
-            const team1Name = document.getElementById('team1_name').value.trim();
-            const team2Name = document.getElementById('team2_name').value.trim();
-
-            if (!team1Name || !team2Name) {
-                e.preventDefault();
-                alert('Please fill in both team names before updating teams.');
-                return;
-            }
-
-            // Add a small delay to ensure all inputs are properly set
-            e.preventDefault();
-            setTimeout(() => {
-                this.submit();
-            }, 100);
-        });
-
-        // Close modal when clicking outside
-        document.getElementById('playerModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closePlayerModal();
-            }
-        });
-
-        // Initialize add button states
-        updateAddButton('team1');
-        updateAddButton('team2');
-    </script>
+    // Initialize add button states
+    updateAddButton('team1');
+    updateAddButton('team2');
+</script>
 @endsection
