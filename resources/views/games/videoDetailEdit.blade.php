@@ -4,26 +4,33 @@
     @foreach ($video as $video)
         <div class="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
             <div class="w-full flex justify-between items-center mb-8">
-    <!-- Left Button -->
-    <a href="{{ url()->previous() }}"
-        class="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all duration-200 border border-slate-200 hover:border-slate-300">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        <span>Go Back</span>
-    </a>
+                <!-- Left Button -->
+                <a href="{{ url()->previous() }}"
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all duration-200 border border-slate-200 hover:border-slate-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    <span>Go Back</span>
+                </a>
 
-    <!-- Right Button -->
-    <button onclick="confirmDelete('{{ $video->id }}', '{{ $video->title }}')"
-        class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-        <span>Delete Video</span>
-    </button>
-</div>
+                <!-- Right Button -->
+                <div class="space-x-2">
+                    <button onclick="confirmDelete('{{ $video->id }}', '{{ $video->title }}')"
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Delete Video</span>
+                    </button>
+                    <a href="{{ route('updateTeamPage', [ $video->id]) }}" 
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-yellow-400 text-black font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+                        <span>Edit Line Up</span>
+                    </a>
+
+                </div>
+            </div>
 
             <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
                 <div class="p-8">
@@ -53,16 +60,17 @@
                                 </svg>
                                 <span>Assigned To</span>
                             </button>
+                            <a href="{{ route('analyze-video-page', $video->id) }}" target="_blank"
+                                class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+                                <i class="fas fa-video mr-3 text-lg"></i>
+                                <span>Analyze Video</span>
+                            </a>
                             {{-- <a href="{{ route('games') }}"
                                                 class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-2 py-1 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl inline-flex items-center justify-center transform hover:scale-105 w-full">
                                                 <i class="fas fa-video mr-3 text-xl"></i>
                                                 Analyze
                                             </a> --}}
-                            <a href="{{route('analyze-video-page',$video->id)}}"  target="_blank"
-                                class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
-                                <i class="fas fa-video mr-3 text-lg"></i>
-                                <span>Analyze Video</span>
-                            </a>
+
                             {{-- <a href="{{route('video.analysis.filter',$video->id)}}"  target="_blank"
                                 class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
                                 <span>Filter Video</span>

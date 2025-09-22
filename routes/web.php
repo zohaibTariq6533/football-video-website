@@ -86,7 +86,7 @@ Route::middleware(['isUserValid',AdminCheck::class])->group(function(){
 
 
     //Analyze game part
-    Route::get('/admin/dashboard/video-analyze/{id}',[GameController::class,'videoAnalyze'])->name('analyze-video-page');
+    
     
 
     Route::get('/video/{video}/stats', function ($video) {
@@ -95,13 +95,13 @@ Route::middleware(['isUserValid',AdminCheck::class])->group(function(){
             'teams' => App\Models\Team::all(),
             'video' => App\Models\Video::find($video)
         ]);
-    });
+    })->withoutMiddleware(AdminCheck::class);
     
 
-    Route::get('/admin/dashboard/video-analyze/stats/{videoId}', [AnalysisController::class, 'showStats'])->name('video.analysis.stats');
+    Route::get('/admin/dashboard/video-analyze/stats/{videoId}', [AnalysisController::class, 'showStats'])->name('video.analysis.stats')->withoutMiddleware(AdminCheck::class);
 
-    Route::get('/admin/dashboard/video-analyze/filter/{videoId}', [AnalysisController::class, 'showFilter'])->name('video.analysis.filter');
+    Route::get('/admin/dashboard/video-analyze/filter/{videoId}', [AnalysisController::class, 'showFilter'])->name('video.analysis.filter')->withoutMiddleware(AdminCheck::class);
 
-    Route::get('/stats/download/{videoId}', [AnalysisController::class, 'downloadPdf'])->name('stats.download.pdf');
-
+    Route::get('/stats/download/{videoId}', [AnalysisController::class, 'downloadPdf'])->name('stats.download.pdf')->withoutMiddleware(AdminCheck::class);
+    Route::get('/admin/dashboard/video-analyze/{id}',[GameController::class,'videoAnalyze'])->name('analyze-video-page')->withoutMiddleware(AdminCheck::class);
 });

@@ -144,12 +144,12 @@
                                     <div
                                         class="lg:w-80 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-100 p-8 flex flex-col justify-center">
                                         <div class="space-y-4">
-                                            <a href="#"
+                                            <a href="{{ route('video.analysis.stats', $game->id) }}" target="_blank"
                                                 class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-6 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl inline-flex items-center justify-center transform hover:scale-105 w-full">
                                                 <i class="fas fa-chart-line mr-3 text-xl"></i>
                                                 Show Statistics
                                             </a>
-                                            <a href="{{ route('games') }}"
+                                            <a href="{{route('analyze-video-page',$game->id)}}" target="_blank"
                                                 class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-6 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl inline-flex items-center justify-center transform hover:scale-105 w-full">
                                                 <i class="fas fa-video mr-3 text-xl"></i>
                                                 Analyze Video

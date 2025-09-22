@@ -22,10 +22,10 @@ class GameController extends Controller
     {   
         if(Auth::user()->role=='Coache'){
             $userID = Auth::id();
-            $gameData = DB::table('videos')->where('user_id', $userID)->get();
+            $gameData = DB::table('videos')->where('user_id', $userID)->orderBy('created_at','desc')->get();
         }
         else{
-            $gameData = DB::table('videos')->get();
+            $gameData = DB::table('videos')->orderBy('created_at','desc')->get();
         }   
 
         return view('games.adminGames', ['game' => $gameData]);

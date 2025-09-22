@@ -17,101 +17,115 @@
             </a>
         </div>
         <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-            @if (Auth::user()->role=='Coache')
-            <table class="w-full">
-                <thead class="bg-slate-900">
-                    <tr class="bg-slate-900 text-white">
-                        <th class="px-4 py-3 font-medium text-center align-middle">MN</th>
-                        <th class="px-4 py-3 text-center font-sm ">Match ID</th>
-                        <th class="px-4 py-3 text-center font-medium">Match Title</th>
-                        <th class="px-4 py-3 text-center font-medium">Date of creation</th>
-                        <th class="px-4 py-3 text-center font-medium">Analyze Status</th>
-                        <th class="px-4 py-3 text-center font-medium">Action</th>
-                        <th class="px-4 py-3 text-center font-medium">Edit Lineups</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($game as $index => $game)
-                        <tr class="border-b border-gray-200 hover:bg-gray-50">
-                            <td class="px-4 py-3  text-center">{{ $index + 1 }}</td>
-                            <td class="px-4 py-3 text-center">{{ $game->id }}</td>
-                            <td class="px-4 py-3 text-sm text-center">{{ $game->title }}</td>
-                            <td class="px-4 py-3 text-center">{{ \Carbon\Carbon::parse($game->created_at)->format('d-m-Y') }}</td>
-                            <td class="px-4 py-3 text-center">{{ $game->status }}</td>
-                            <td class="px-4 py-3 text-center "><a href="{{ route('games') }}"
-                                    class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-1 py-1 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl inline-flex items-center justify-center transform hover:scale-105 w-full">
-                                    <i class="fas fa-video mr-3 text-xl"></i>
-                                    Analyze
-                                </a></td>
-                            <td class="px-4 py-3 text-center"><a href="{{ route('updateTeamPage', ['video_id' => $game->id]) }}"><i class="fa-solid fa-pen-to-square text-2xl text-slate-600"></i></a></td>
+            @if (Auth::user()->role == 'Coache')
+                <table class="w-full">
+                    <thead class="bg-slate-900">
+                        <tr class="bg-slate-900 text-white">
+                            <th class="px-4 py-3 font-medium text-center align-middle">MN</th>
+                            <th class="px-4 py-3 text-center font-sm ">Match ID</th>
+                            <th class="px-4 py-3 text-center font-medium">Match Title</th>
+                            <th class="px-4 py-3 text-center font-medium">Date of creation</th>
+                            <th class="px-4 py-3 text-center font-medium">Analyze Status</th>
+                            <th class="px-4 py-3 text-center font-medium">Action</th>
+                            <th class="px-4 py-3 text-center font-medium">Edit Lineups</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>  
+                    </thead>
+                    <tbody>
+                        @foreach ($game as $index => $game)
+                            <tr class="border-b border-gray-200 hover:bg-gray-50">
+                                <td class="px-4 py-3  text-center">{{ $index + 1 }}</td>
+                                <td class="px-4 py-3 text-center">{{ $game->id }}</td>
+                                <td class="px-4 py-3 text-sm text-center">{{ $game->title }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    {{ \Carbon\Carbon::parse($game->created_at)->format('d-m-Y') }}</td>
+                                <td class="px-4 py-3 text-center">{{ $game->status }}</td>
+                                <td class="px-4 py-3 text-center ">
+
+                                    <select id="actions"
+                                        class="px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                                        onchange="if(this.value) window.open(this.value, '_blank')">
+                                        <option value="" selected disabled>Choose Action</option>
+                                        <option value="{{ route('analyze-video-page', [$game->id]) }}" class="p-2 text-lg"> Analyze</option>
+                                        <option value="{{ route('video.analysis.stats', $game->id) }}" class="p-2 text-lg"> Statistics
+                                        </option>
+                                    </select>
+                                </td>
+                                <td class="px-4 py-3 text-center"><a
+                                        href="{{ route('updateTeamPage', ['video_id' => $game->id]) }}"><i
+                                            class="fa-solid fa-pen-to-square text-2xl text-slate-600"></i></a></td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             @else
                 <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-800">
-                    <tr>
-                        <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-white tracking-wider">
-                            MN.
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
-                            Match id
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
-                            Match Title
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
-                            Status
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
-                            Assigned
-                        </th>
-                        <th scope="col" class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
-                            Actions 
-                        </th>
-                    </tr>
-                </thead>
-                {{-- Table Body will go here --}}
-                @foreach ($game as $item => $game)
-                    <tbody class="bg-white divide-y divide-slate-100">
-                        {{-- Example Row (replace with your actual data loop) --}}
+                    <thead class="bg-slate-800">
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 text-center">
-                                {{ $item + 1 }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 text-center">
-                                {{ $game->id }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
-                                {{ $game->title }}
-                            </td>
-                            @if ($game->status=='In progress')
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold text-center ">
-                                {{ $game->status }}
-                            </td>
-                            @elseif ($game->status=='Completed')
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold text-center">
-                                    {{ $game->status }}
-                                </td>
-                            @endif
-                            
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
-                                Not added yet
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                                <a href="{{route('videoDetailEdit', ['id'=>$game->id])}}"
-                                    class="px-3 py-1  bg-slate-800 text-white text-sm font-medium rounded-md transition-colors duration-200">View</a>
-
-                            </td>
+                            <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-white tracking-wider">
+                                MN.
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
+                                Match id
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
+                                Match Title
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
+                                Status
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
+                                Assigned
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-4 text-center text-sm font-semibold text-white tracking-wider">
+                                Actions
+                            </th>
                         </tr>
-                        {{-- End Example Row --}}
-                    </tbody>
-                @endforeach
+                    </thead>
+                    {{-- Table Body will go here --}}
+                    @foreach ($game as $item => $game)
+                        <tbody class="bg-white divide-y divide-slate-100">
+                            {{-- Example Row (replace with your actual data loop) --}}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 text-center">
+                                    {{ $item + 1 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 text-center">
+                                    {{ $game->id }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
+                                    {{ $game->title }}
+                                </td>
+                                @if ($game->status == 'In progress')
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold text-center ">
+                                        {{ $game->status }}
+                                    </td>
+                                @elseif ($game->status == 'Completed')
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold text-center">
+                                        {{ $game->status }}
+                                    </td>
+                                @endif
 
-            </table>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
+                                    Not added yet
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                                    <a href="{{ route('videoDetailEdit', ['id' => $game->id]) }}"
+                                        class="px-3 py-1  bg-slate-800 text-white text-sm font-medium rounded-md transition-colors duration-200">View</a>
+
+                                </td>
+                            </tr>
+                            {{-- End Example Row --}}
+                        </tbody>
+                    @endforeach
+
+                </table>
             @endif
-            
+
             {{-- <div class="my-5">
             {{ $user->links() }}
         </div> --}}
