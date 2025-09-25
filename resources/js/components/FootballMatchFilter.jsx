@@ -40,18 +40,18 @@ const FootballMatchFilter = ({
     const [showControls, setShowControls] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    // Filter states
+    // Filter states - RESTRUCTURED for event-type-specific player selection
     const [selectedEvents, setSelectedEvents] = useState({});
-    const [selectedPlayers, setSelectedPlayers] = useState({});
-    const [selectedActions, setSelectedActions] = useState({}); // New state for actions
+    const [selectedPlayers, setSelectedPlayers] = useState({}); // Will be { teamId: { eventType: { playerId: boolean } } }
+    const [selectedActions, setSelectedActions] = useState({});
     const [filteredEvents, setFilteredEvents] = useState([]);
     
     // New state to track selection timestamps
     const [selectionTimestamps, setSelectionTimestamps] = useState({});
 
     // New states for hover popups
-    const [hoveredEventCount, setHoveredEventCount] = useState(null); // { teamId, eventType }
-    const [hoveredActionCount, setHoveredActionCount] = useState(null); // { teamId, eventType }
+    const [hoveredEventCount, setHoveredEventCount] = useState(null);
+    const [hoveredActionCount, setHoveredActionCount] = useState(null);
     const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
     const [actionPopupPosition, setActionPopupPosition] = useState({
         top: 0,
@@ -89,11 +89,6 @@ const FootballMatchFilter = ({
             }
         }
 
-        console.log("Initialized data:", {
-            teamsData,
-            videoData,
-            analysisData,
-        });
         setInitialData({ teamsData, videoData, analysisData });
     }, [propTeams, propVideo, propAnalysisData]);
 
@@ -108,7 +103,6 @@ const FootballMatchFilter = ({
         // Initialize filtered events
         if (analysisData?.markers && Array.isArray(analysisData.markers)) {
             setFilteredEvents(analysisData.markers);
-            console.log("Set filtered events:", analysisData.markers);
         } else {
             console.warn(
                 "Analysis data is not properly initialized:",
@@ -118,7 +112,7 @@ const FootballMatchFilter = ({
         }
     }, [initialData]);
 
-    // Initialize selected events - ALL UNCHECKED BY DEFAULT
+    // Initialize selected events and players - ALL UNCHECKED BY DEFAULT
     useEffect(() => {
         const { analysisData } = initialData;
 
@@ -128,7 +122,8 @@ const FootballMatchFilter = ({
         }
 
         const initialSelectedEvents = {};
-        const initialSelectedActions = {}; // Initialize actions
+        const initialSelectedActions = {};
+        const initialSelectedPlayers = {};
 
         // Get all event types from the analysis data
         const eventTypes = [
@@ -141,11 +136,15 @@ const FootballMatchFilter = ({
 
         teams.forEach((team) => {
             initialSelectedEvents[team.id] = {};
-            initialSelectedActions[team.id] = {}; // Initialize actions for team
+            initialSelectedActions[team.id] = {};
+            initialSelectedPlayers[team.id] = {}; // Initialize players for this team
 
             eventTypes.forEach((eventType) => {
                 // Initially UNSELECT all events
                 initialSelectedEvents[team.id][eventType] = false;
+
+                // Initialize players for this event type
+                initialSelectedPlayers[team.id][eventType] = {};
 
                 // Get all unique actions for this team and event type
                 const actions = [
@@ -172,8 +171,10 @@ const FootballMatchFilter = ({
         // Add events without team
         initialSelectedEvents.no_team = {};
         initialSelectedActions.no_team = {};
+        initialSelectedPlayers.no_team = {};
         eventTypes.forEach((eventType) => {
             initialSelectedEvents.no_team[eventType] = false;
+            initialSelectedPlayers.no_team[eventType] = {}; // Initialize players for no_team
 
             // Get actions for events without team
             const actions = [
@@ -196,7 +197,8 @@ const FootballMatchFilter = ({
         });
 
         setSelectedEvents(initialSelectedEvents);
-        setSelectedActions(initialSelectedActions); // Set actions state
+        setSelectedActions(initialSelectedActions);
+        setSelectedPlayers(initialSelectedPlayers);
     }, [teams, initialData]);
 
     // Format time helper
@@ -338,21 +340,27 @@ const FootballMatchFilter = ({
     // Toggle event selection with timestamp tracking
     const toggleEventSelection = useCallback((teamId, eventType) => {
         setSelectedEvents((prev) => {
-            // Create a copy of the previous state
             const newState = { ...prev };
-            
-            // If the teamId doesn't exist in the state, initialize it
             if (!newState[teamId]) {
                 newState[teamId] = {};
             }
             
-            // If the eventType doesn't exist for this team, initialize it
-            if (newState[teamId][eventType] === undefined) {
-                newState[teamId][eventType] = false;
-            }
+            const wasSelected = newState[teamId][eventType] || false;
+            newState[teamId][eventType] = !wasSelected;
             
-            // Toggle the selection
-            newState[teamId][eventType] = !newState[teamId][eventType];
+            // If unchecking the event, also uncheck all players for this event
+            if (wasSelected) {
+                setSelectedPlayers((prevPlayers) => {
+                    const newPlayersState = { ...prevPlayers };
+                    if (newPlayersState[teamId] && newPlayersState[teamId][eventType]) {
+                        // Reset all players for this event type to false
+                        Object.keys(newPlayersState[teamId][eventType]).forEach(playerId => {
+                            newPlayersState[teamId][eventType][playerId] = false;
+                        });
+                    }
+                    return newPlayersState;
+                });
+            }
             
             return newState;
         });
@@ -370,27 +378,14 @@ const FootballMatchFilter = ({
     const toggleActionSelection = useCallback(
         (teamId, eventType, action) => {
             setSelectedActions((prev) => {
-                // Create a copy of the previous state
                 const newState = { ...prev };
-                
-                // If the teamId doesn't exist, initialize it
                 if (!newState[teamId]) {
                     newState[teamId] = {};
                 }
-                
-                // If the eventType doesn't exist for this team, initialize it
                 if (!newState[teamId][eventType]) {
                     newState[teamId][eventType] = {};
                 }
-                
-                // If the action doesn't exist for this eventType, initialize it
-                if (newState[teamId][eventType][action] === undefined) {
-                    newState[teamId][eventType][action] = false;
-                }
-                
-                // Toggle the selection
-                newState[teamId][eventType][action] = !newState[teamId][eventType][action];
-                
+                newState[teamId][eventType][action] = !newState[teamId]?.[eventType]?.[action];
                 return newState;
             });
 
@@ -401,14 +396,10 @@ const FootballMatchFilter = ({
                     if (!newState[teamId]) {
                         newState[teamId] = {};
                     }
-                    if (newState[teamId][eventType] === undefined) {
-                        newState[teamId][eventType] = false;
-                    }
                     newState[teamId][eventType] = true;
                     return newState;
                 });
                 
-                // Update timestamp for the event type when selected via action
                 setSelectionTimestamps(prev => ({
                     ...prev,
                     [`${teamId}-${eventType}`]: Date.now()
@@ -418,21 +409,18 @@ const FootballMatchFilter = ({
         [selectedEvents]
     );
 
-    // Toggle player selection with auto event selection
+    // Toggle player selection with event type restriction
     const togglePlayerSelection = useCallback(
         (teamId, playerId, eventType) => {
             setSelectedPlayers((prev) => {
-                // Create a copy of the previous state
                 const newState = { ...prev };
-                
-                // If the teamId doesn't exist, initialize it
                 if (!newState[teamId]) {
                     newState[teamId] = {};
                 }
-                
-                // Toggle the selection
-                newState[teamId][playerId] = !newState[teamId]?.[playerId];
-                
+                if (!newState[teamId][eventType]) {
+                    newState[teamId][eventType] = {};
+                }
+                newState[teamId][eventType][playerId] = !newState[teamId]?.[eventType]?.[playerId];
                 return newState;
             });
 
@@ -443,14 +431,10 @@ const FootballMatchFilter = ({
                     if (!newState[teamId]) {
                         newState[teamId] = {};
                     }
-                    if (newState[teamId][eventType] === undefined) {
-                        newState[teamId][eventType] = false;
-                    }
                     newState[teamId][eventType] = true;
                     return newState;
                 });
                 
-                // Update timestamp for the event type when selected via player
                 setSelectionTimestamps(prev => ({
                     ...prev,
                     [`${teamId}-${eventType}`]: Date.now()
@@ -466,7 +450,7 @@ const FootballMatchFilter = ({
         const rect = e.currentTarget.getBoundingClientRect();
         setPopupPosition({
             top: rect.top + window.scrollY,
-            left: rect.left + window.scrollX + rect.width + 0.5, // 0.5px offset to the right
+            left: rect.left + window.scrollX + rect.width + 0.5,
         });
     }, []);
 
@@ -476,7 +460,7 @@ const FootballMatchFilter = ({
         const rect = e.currentTarget.getBoundingClientRect();
         setActionPopupPosition({
             top: rect.top + window.scrollY,
-            left: rect.left + window.scrollX + rect.width + 0.5, // 0.5px offset to the right
+            left: rect.left + window.scrollX + rect.width + 0.5,
         });
     }, []);
 
@@ -518,7 +502,7 @@ const FootballMatchFilter = ({
         };
     }, [duration, seekToTime]);
 
-    // Apply filters - UPDATED to handle action filtering differently
+    // Apply filters - UPDATED to handle player filtering by event type only
     useEffect(() => {
         const { analysisData } = initialData;
 
@@ -560,28 +544,54 @@ const FootballMatchFilter = ({
             });
         });
 
-        // Apply player filters if any players are selected
+        // Apply player filters - ONLY for specific event types
         const hasPlayerFilters = Object.values(selectedPlayers).some(
-            (teamPlayers) =>
-                teamPlayers &&
-                Object.values(teamPlayers).some((selected) => selected)
+            (teamEvents) =>
+                teamEvents &&
+                Object.values(teamEvents).some(
+                    (eventPlayers) =>
+                        eventPlayers &&
+                        Object.values(eventPlayers).some((selected) => selected)
+                )
         );
 
         if (hasPlayerFilters) {
-            // Only filter out events that have players but are not selected
-            // Events without players should remain visible
-            filtered = filtered.filter((event) => {
-                // If event has no player_id, always show it
-                if (!event.player_id) return true;
+            // Create a set of event types that have player filters
+            const eventTypesWithPlayerFilters = new Set();
+            
+            Object.entries(selectedPlayers).forEach(([teamId, teamEvents]) => {
+                Object.entries(teamEvents).forEach(([eventType, eventPlayers]) => {
+                    if (eventPlayers && Object.values(eventPlayers).some(selected => selected)) {
+                        eventTypesWithPlayerFilters.add(`${teamId}-${eventType}`);
+                    }
+                });
+            });
 
-                // If event has a player_id, check if that player is selected
-                const teamPlayers = selectedPlayers[event.team_id];
-                return teamPlayers && teamPlayers[event.player_id];
+            // Only filter events that belong to event types with player selections
+            filtered = filtered.filter((event) => {
+                const eventKey = `${event.team_id || 'no_team'}-${event.eventType}`;
+                
+                // If this event type has player filters, apply player filtering
+                if (eventTypesWithPlayerFilters.has(eventKey)) {
+                    // If event has no player, always show it
+                    if (!event.player_id) return true;
+                    
+                    // Check if this player is selected for this specific event type
+                    const teamEvents = selectedPlayers[event.team_id || "no_team"];
+                    if (!teamEvents) return true;
+                    
+                    const eventPlayers = teamEvents[event.eventType];
+                    if (!eventPlayers) return true;
+                    
+                    return eventPlayers[event.player_id];
+                }
+                
+                // For event types without player filters, always show the event
+                return true;
             });
         }
 
-        // NEW ACTION FILTERING LOGIC
-        // Check if any actions are selected
+        // Apply action filters
         const hasSelectedActions = Object.values(selectedActions).some(
             (teamEventTypes) =>
                 teamEventTypes &&
@@ -593,7 +603,6 @@ const FootballMatchFilter = ({
         );
 
         if (hasSelectedActions) {
-            // First, identify event types with selected actions
             const eventTypesWithSelectedActions = new Set();
             
             Object.entries(selectedActions).forEach(([teamId, eventTypes]) => {
@@ -604,46 +613,37 @@ const FootballMatchFilter = ({
                 });
             });
 
-            // Apply filtering based on selected actions
             filtered = filtered.filter((event) => {
                 const eventKey = `${event.team_id || 'no_team'}-${event.eventType}`;
                 
-                // If this event type has selected actions
                 if (eventTypesWithSelectedActions.has(eventKey)) {
-                    // Only show events with selected actions for this event type
-                    if (!event.action) return false; // Hide events without actions
+                    if (!event.action) return false;
                     
                     const teamActions = selectedActions[event.team_id || "no_team"];
                     const eventTypeActions = teamActions?.[event.eventType];
                     
-                    // Only show if this specific action is selected
                     return eventTypeActions && eventTypeActions[event.action];
                 }
                 
-                // For event types without selected actions, show all events
                 return true;
             });
         }
 
         // Sort by selection timestamp (most recent first), then by time
         filtered.sort((a, b) => {
-            // Get selection timestamps for these events
             const aTimestampKey = `${a.team_id || 'no_team'}-${a.eventType}`;
             const bTimestampKey = `${b.team_id || 'no_team'}-${b.eventType}`;
             
             const aTimestamp = selectionTimestamps[aTimestampKey] || 0;
             const bTimestamp = selectionTimestamps[bTimestampKey] || 0;
             
-            // If both events have selection timestamps, sort by most recent first
             if (aTimestamp && bTimestamp) {
-                return bTimestamp - aTimestamp; // Descending order (newer first)
+                return bTimestamp - aTimestamp;
             }
             
-            // If only one has a timestamp, prioritize it
             if (aTimestamp) return -1;
             if (bTimestamp) return 1;
             
-            // If neither has a timestamp, sort by time (ascending)
             return a.time - b.time;
         });
 
@@ -654,10 +654,8 @@ const FootballMatchFilter = ({
     const playEvent = useCallback(
         (startTime) => {
             if (videoRef.current && videoUrl) {
-                // Set the video to the exact start time of the event
                 videoRef.current.currentTime = startTime;
 
-                // Play the video
                 videoRef.current
                     .play()
                     .then(() => {
@@ -670,7 +668,6 @@ const FootballMatchFilter = ({
                         console.error("Error playing video:", error);
                     });
             } else {
-                // Fallback if video is not loaded yet
                 seekToTime(startTime);
                 setIsPlaying(true);
             }
@@ -691,7 +688,6 @@ const FootballMatchFilter = ({
     useEffect(() => {
         const handleFullscreenChange = () => {
             setIsFullscreen(!!document.fullscreenElement);
-            // Always show controls in fullscreen
             if (document.fullscreenElement) {
                 setShowControls(true);
             }
@@ -733,7 +729,6 @@ const FootballMatchFilter = ({
             }
         });
 
-        // Extract unique players
         const playersMap = {};
         filteredMarkers.forEach((marker) => {
             if (marker.player_id && marker.playerName) {
@@ -769,7 +764,6 @@ const FootballMatchFilter = ({
             }
         });
 
-        // Extract unique actions
         const actionsSet = new Set();
         filteredMarkers.forEach((marker) => {
             if (marker.action) {
@@ -795,7 +789,6 @@ const FootballMatchFilter = ({
                             </h3>
                             <div className="space-y-2">
                                 {allEventTypes.map((eventType) => {
-                                    // Count events of this type without a team
                                     const eventCount = eventsWithoutTeam.filter(
                                         (marker) =>
                                             marker.eventType === eventType
@@ -836,8 +829,8 @@ const FootballMatchFilter = ({
 
                                             <div className="flex space-x-2">
                                                 <span className="text-xs bg-gray-200 rounded-full px-2 py-1 transition-colors">
-                                                        {eventCount}
-                                                    </span>
+                                                    {eventCount}
+                                                </span>
                                                 <span
                                                     className="text-xs bg-gray-200 rounded-full px-2 py-1 cursor-pointer hover:bg-gray-300 transition-colors"
                                                     onMouseEnter={(e) =>
@@ -899,7 +892,6 @@ const FootballMatchFilter = ({
                                 {/* Event Types */}
                                 <div className="space-y-2">
                                     {allEventTypes.map((eventType) => {
-                                        // Count events of this type for this team
                                         const eventCount =
                                             initialData.analysisData.markers?.filter(
                                                 (marker) =>
@@ -967,7 +959,7 @@ const FootballMatchFilter = ({
                                                                 team.id,
                                                                 eventType,
                                                                 e
-                                                            )
+                                                        )
                                                         }
                                                         onMouseLeave={
                                                             handleEventCountLeave
@@ -987,7 +979,7 @@ const FootballMatchFilter = ({
 
                 {/* Right Panel - Video and Events (70% width) */}
                 <div className="w-[73%] flex flex-col">
-                    {/* Video Player (60% height - reduced from 70%) */}
+                    {/* Video Player (60% height) */}
                     <div
                         className="video-section h-3/5 bg-black relative"
                         onMouseMove={handleVideoMouseMove}
@@ -1196,7 +1188,7 @@ const FootballMatchFilter = ({
                         )}
                     </div>
 
-                    {/* Filtered Events Section (40% height - increased from 30%) */}
+                    {/* Filtered Events Section (40% height) */}
                     <div className="h-2/5 bg-white border-t border-gray-300 overflow-hidden flex flex-col">
                         {/* Events Table Header */}
                         <div className="grid grid-cols-10 gap-2 p-3 bg-gray-100 border-b border-gray-300 text-xs font-semibold uppercase">
@@ -1214,21 +1206,9 @@ const FootballMatchFilter = ({
                         <div className="flex-1 overflow-y-auto">
                             {filteredEvents.length > 0 ? (
                                 filteredEvents.map((event, index) => {
-                                    // Check if this event involves any selected player
-                                    const hasSelectedPlayer = Object.values(
-                                        selectedPlayers
-                                    ).some(
-                                        (teamPlayers) =>
-                                            teamPlayers &&
-                                            Object.entries(teamPlayers).some(
-                                                ([playerId, selected]) =>
-                                                    selected &&
-                                                    (event.player_id ===
-                                                        parseInt(playerId) ||
-                                                        event.assistPlayerId ===
-                                                            parseInt(playerId))
-                                            )
-                                    );
+                                    // Check if this event involves any selected player for this specific event type
+                                    const hasSelectedPlayer = event.player_id && 
+                                        selectedPlayers[event.team_id || "no_team"]?.[event.eventType]?.[event.player_id];
 
                                     // Check if this event type was recently selected
                                     const eventKey = `${event.team_id || 'no_team'}-${event.eventType}`;
@@ -1266,12 +1246,7 @@ const FootballMatchFilter = ({
                                                     {event.eventType}
                                                 </span>
                                             </div>
-                                            {/* <div className="col-span-1 text-sm">
-                                                    {event.action || "-"}
-                                                </div> */}
-
-                                            {/* Play button spanning the entire row */}
-                                            <div className="col-span-1 flex ">
+                                            <div className="col-span-1 flex">
                                                 <button
                                                     onClick={() =>
                                                         playEvent(event.time)
@@ -1328,12 +1303,12 @@ const FootballMatchFilter = ({
             {/* Player Popup */}
             {hoveredEventCount && (
                 <div
-                    className="absolute bg-white shadow-lg rounded-lg p-4 z-10 border border-gray-200 w-64"
+                    className="absolute bg-white shadow-lg rounded-lg p-4 z-50 border border-gray-200 w-64 transform -translate-y-px"
                     style={{
                         top: `${popupPosition.top}px`,
                         left: `${popupPosition.left}px`,
                     }}
-                    onMouseEnter={() => setHoveredEventCount(hoveredEventCount)} // Keep popup open when hovering over it
+                    onMouseEnter={() => setHoveredEventCount(hoveredEventCount)}
                     onMouseLeave={handleEventCountLeave}
                 >
                     <h3 className="font-semibold mb-2 text-sm">
@@ -1349,13 +1324,11 @@ const FootballMatchFilter = ({
                                     type="checkbox"
                                     id={`player-popup-${player.id}`}
                                     checked={
-                                        selectedPlayers[player.teamId]?.[
-                                            player.id
-                                        ] || false
+                                        selectedPlayers[player.teamId || "no_team"]?.[hoveredEventCount.eventType]?.[player.id] || false
                                     }
                                     onChange={() =>
                                         togglePlayerSelection(
-                                            player.teamId,
+                                            player.teamId || "no_team",
                                             player.id,
                                             hoveredEventCount.eventType
                                         )
@@ -1392,7 +1365,7 @@ const FootballMatchFilter = ({
                     }}
                     onMouseEnter={() =>
                         setHoveredActionCount(hoveredActionCount)
-                    } // Keep popup open when hovering over it
+                    }
                     onMouseLeave={handleActionCountLeave}
                 >
                     <h3 className="font-semibold mb-2 text-sm">

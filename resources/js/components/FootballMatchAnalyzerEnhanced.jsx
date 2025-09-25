@@ -375,55 +375,37 @@ const FootballMatchAnalyzer = ({
   
 // Handle possession toggle
 const handlePossessionToggle = useCallback(() => {
-  if (activePossession) {
-    const endTime = currentTimeRef.current;
-    const startTime = possessionStartTime;
-    const team = teams.find(t => t.shortName === `Team ${activePossession}`);
-    
-    const possessionMarker = {
-      id: Date.now(),
-      time: startTime,
-      endTime: endTime,
-      eventType: 'Possession',
-      team: team.name,
-      player_id: null,
-      jerseyNo: null,
-      playerName: null,
-      action: 'Ball Control',
-      color: team.color,
-      isTimeBased: true,
-      isConfigured: true
-    };
-    
-    setAnalysisMarkers(prev => [...prev, possessionMarker]);
-    setActivePossession(null);
-    setPossessionStartTime(null);
-    setActivePossessionTeam(activePossession === 'A' ? 'B' : 'A');
-  } else {
-    setActivePossession(activePossessionTeam);
-    setPossessionStartTime(currentTimeRef.current);
-    
-    // Find the team object for the current active possession team
-    const team = teams.find(t => t.shortName === `Team ${activePossessionTeam}`);
-    
-    const transitionMarker = {
-      id: Date.now() + 1,
-      time: Math.max(0, currentTimeRef.current - 2),
-      endTime: Math.min(duration, currentTimeRef.current + 2),
-      eventType: 'Transition',
-      team: team ? team.name : `Team ${activePossessionTeam}`, // Use actual team name if found
-      player_id: null,
-      jerseyNo: null,
-      playerName: null,
-      action: 'Transition',
-      color: eventTypes.find(et => et.name === 'Transition').color,
-      isTimeBased: true,
-      isConfigured: true
-    };
-    
-    setAnalysisMarkers(prev => [...prev, transitionMarker]);
-  }
-}, [activePossession, possessionStartTime, activePossessionTeam, duration, teams, eventTypes]);
+    if (activePossession) {
+        const endTime = currentTimeRef.current;
+        const startTime = possessionStartTime;
+        const team = teams.find(t => t.shortName === `Team ${activePossession}`);
+        
+        const possessionMarker = {
+            id: Date.now(),
+            time: startTime,
+            endTime: endTime,
+            eventType: 'Possession',
+            team: team.name,
+            player_id: null,
+            jerseyNo: null,
+            playerName: null,
+            action: 'Ball Control',
+            color: team.color,
+            isTimeBased: true,
+            isConfigured: true
+        };
+        
+        setAnalysisMarkers(prev => [...prev, possessionMarker]);
+        setActivePossession(null);
+        setPossessionStartTime(null);
+        // Don't switch team automatically - let user select it in the config panel
+    } else {
+        setActivePossession(activePossessionTeam);
+        setPossessionStartTime(currentTimeRef.current);
+        
+        // Don't automatically create a transition marker - let user configure it
+    }
+}, [activePossession, possessionStartTime, activePossessionTeam, teams, eventTypes]);
   
   // Handle period toggle
   const handlePeriodToggle = useCallback(() => {
@@ -714,7 +696,7 @@ const handlePossessionToggle = useCallback(() => {
     );
   }, []);
   
-  // Save configured event
+// Save configured event
 const saveConfiguredEvent = useCallback((eventId) => {
     const eventConfigIndex = openEventConfigs.findIndex(config => config.event.id === eventId);
     if (eventConfigIndex === -1) return;
@@ -750,7 +732,8 @@ const saveConfiguredEvent = useCallback((eventId) => {
                 player_id: player?.id || null,
                 jerseyNo: player?.jerseyNo || null,
                 playerName: player?.name || null,
-                action: configData.selectedAction || (eventTypeConfig.actions.length > 0 ? eventTypeConfig.actions[0] : event.eventType),
+                // Only set action if one is selected, otherwise set to null
+                action: configData.selectedAction || null,
                 assist_player_id: assistPlayer?.id || null,
                 assistJerseyNo: assistPlayer?.jerseyNo || null,
                 assistPlayerName: assistPlayer?.name || null,
@@ -1166,259 +1149,333 @@ const saveAllAnalysis = useCallback(async () => {
     </div>
   ));
   
-  // Event Configuration Panel Component - memoized
-  const EventConfigPanel = memo(({ eventConfig, onClose }) => {
-    const { event, configData } = eventConfig;
-    const eventTypeConfig = eventTypes.find(et => et.name === event.eventType);
-    
-    return (
-      <div 
-        id={`event-config-${event.id}`}
-        className="bg-white border border-gray-200 rounded-lg shadow-sm mb-3 overflow-hidden"
-      >
-        <div className="bg-blue-50 border-b border-blue-200 p-3 flex justify-between items-center">
-          <div>
-            <h4 className="font-semibold text-blue-800">
-              {editingMarkerId === event.id ? 'Edit' : 'Configure'} {event.eventType}
-            </h4>
-            <div className="text-xs text-blue-600">
-              {formatTime(event.time)} - {formatTime(event.endTime)}
+// Event Configuration Panel Component - memoized
+const EventConfigPanel = memo(({ eventConfig, onClose }) => {
+  const { event, configData } = eventConfig;
+  const eventTypeConfig = eventTypes.find(et => et.name === event.eventType);
+  
+  // Determine if team selection is required for this event
+  const requiresTeamSelection = eventTypeConfig.requiresTeam && 
+                                 event.eventType !== 'Period' && 
+                                 event.eventType !== 'Possession' && 
+                                 event.eventType !== 'Transition';
+  
+  // Check if team selection is satisfied
+  const teamSelectionSatisfied = !requiresTeamSelection || configData.selectedTeam;
+  
+  return (
+    <div 
+      id={`event-config-${event.id}`}
+      className="bg-white border border-gray-200 rounded-lg shadow-sm mb-3 overflow-hidden"
+    >
+      <div className="bg-blue-50 border-b border-blue-200 p-3 flex justify-between items-center">
+        <div>
+          <h4 className="font-semibold text-blue-800">
+            {editingMarkerId === event.id ? 'Edit' : 'Configure'} {event.eventType}
+          </h4>
+          <div className="text-xs text-blue-600">
+            {formatTime(event.time)} - {formatTime(event.endTime)}
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-3">
+        {/* Action Selection for Period events */}
+        {(event.eventType === 'Period') && (
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">Select Period Type:</div>
+            <div className="grid grid-cols-2 gap-1">
+              {/* Add "None" option */}
+              <button
+                onClick={() => updateEventConfigData(event.id, { selectedAction: null })}
+                className={`px-2 py-2 text-xs rounded transition-colors ${
+                  configData.selectedAction === null
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                None
+              </button>
+              {eventTypeConfig.actions.map(action => (
+                <button
+                  key={action}
+                  onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
+                  className={`px-2 py-2 text-xs rounded transition-colors ${
+                    configData.selectedAction === action
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {action}
+                </button>
+              ))}
             </div>
           </div>
-          <button
-            onClick={() => onClose(event.id)}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X size={16} />
-          </button>
-        </div>
+        )}
         
-        <div className="p-3">
-          {/* Action Selection for Period events */}
-          {(event.eventType === 'Period') && (
-            <div className="mb-3">
-              <div className="text-sm font-medium text-gray-700 mb-2">Select Period Type:</div>
-              <div className="grid grid-cols-2 gap-1">
-                {eventTypeConfig.actions.map(action => (
-                  <button
-                    key={action}
-                    onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
-                    className={`px-2 py-2 text-xs rounded transition-colors ${
-                      configData.selectedAction === action
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {action}
-                  </button>
-                ))}
-              </div>
+        {/* Team Selection - Show for all events that might need it */}
+        {(eventTypeConfig.requiresTeam || event.eventType === 'Shot' || event.eventType === 'Foul' || event.eventType === 'Possession' || event.eventType === 'Set Play') && (
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">
+              Select Team {event.eventType === 'Shot' || event.eventType === 'Foul' ? '(Optional)' : ''}:
             </div>
-          )}
-          
-          {/* Team Selection - Show for all events that might need it */}
-          {(eventTypeConfig.requiresTeam || event.eventType === 'Shot' || event.eventType === 'Foul') && (
-            <div className="mb-3">
-              <div className="text-sm font-medium text-gray-700 mb-2">
-                Select Team {event.eventType === 'Shot' || event.eventType === 'Foul' ? '(Optional)' : ''}:
-              </div>
-              <div className="flex gap-2">
-                {teams.map(team => (
-                  <button
-                    key={team.name}
-                    onClick={() => updateEventConfigData(event.id, { 
-                      selectedTeam: team, 
-                      selectedPlayer: null,
-                      selectedAssistPlayer: null
-                    })}
-                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                      configData.selectedTeam?.name === team.name
-                        ? 'bg-gray-100 text-black border border-black '
-                        : team.shortName === 'Team A' 
-                        ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    {team.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Action Selection for Shot events */}
-          {(event.eventType === 'Shot' && configData.selectedTeam) && (
-            <div className="mb-3">
-              <div className="text-sm font-medium text-gray-700 mb-2">Result:</div>
-              <div className="grid grid-cols-2 gap-1">
-                {['Goal', 'Save', 'Wide', 'Blocked'].map(action => (
-                  <button
-                    key={action}
-                    onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
-                    className={`px-2 py-2 text-xs rounded transition-colors ${
-                      configData.selectedAction === action
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {action}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Action Selection for Foul events */}
-          {(event.eventType === 'Foul' && configData.selectedTeam) && (
-            <div className="mb-3">
-              <div className="text-sm font-medium text-gray-700 mb-2">Card Type:</div>
-              <div className="grid grid-cols-2 gap-1">
-                {['Yellow Card', 'Red Card'].map(action => (
-                  <button
-                    key={action}
-                    onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
-                    className={`px-2 py-2 text-xs rounded transition-colors ${
-                      configData.selectedAction === action
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {action}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Action Selection for other events that have actions */}
-          {(configData.selectedTeam && event.eventType !== 'Shot' && event.eventType !== 'Period' && event.eventType !== 'Foul' && eventTypeConfig.actions.length > 0) && (
-            <div className="mb-3">
-              <div className="text-sm font-medium text-gray-700 mb-2">Select Action:</div>
-              <div className="grid grid-cols-2 gap-1">
-                {eventTypeConfig.actions.map(action => (
-                  <button
-                    key={action}
-                    onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
-                    className={`px-2 py-2 text-xs rounded transition-colors ${
-                      configData.selectedAction === action
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {action}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Player Selection for events that require player */}
-          {(eventTypeConfig.requiresPlayer || event.eventType === 'Shot' || event.eventType === 'Foul') && configData.selectedTeam && (
-            <div className="mb-3">
-              <div className="text-sm font-medium text-gray-700 mb-2">
-                Select Player {event.eventType === 'Shot' || event.eventType === 'Foul' ? '(Optional)' : ''}:
-              </div>
-              <div className="grid grid-cols-3 gap-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded">
-                {/* Add "None" option for Shot and Foul events */}
-                {(event.eventType === 'Shot' || event.eventType === 'Foul') && (
-                  <button
-                    onClick={() => updateEventConfigData(event.id, { selectedPlayer: null })}
-                    className={`p-2 rounded text-xs font-medium transition-colors ${
-                      !configData.selectedPlayer
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    None
-                  </button>
-                )}
-                {configData.selectedTeam.players.map(player => (
-                  <button
-                    key={player.id}
-                    onClick={() => updateEventConfigData(event.id, { selectedPlayer: player })}
-                    className={`p-2 rounded text-xs font-medium transition-colors ${
-                      configData.selectedPlayer?.id === player.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    #{player.jerseyNo}
-                  </button>
-                ))}
-              </div>
-              {configData.selectedPlayer && (
-                <div className="text-xs mt-2 bg-blue-50 rounded px-2 py-1">
-                  Selected: #{configData.selectedPlayer.jerseyNo} - {configData.selectedPlayer.name}
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Assist Player Selection for Shot events */}
-          {(event.eventType === 'Shot' && configData.selectedTeam && configData.selectedPlayer) && (
-            <div className="mb-3">
-              <div className="text-sm font-medium text-gray-700 mb-2">
-                Select Assist Player (Optional):
-              </div>
-              <div className="grid grid-cols-3 gap-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded">
-                {/* Add "None" option */}
+            <div className="flex gap-2">
+              {teams.map(team => (
                 <button
-                  onClick={() => updateEventConfigData(event.id, { selectedAssistPlayer: null })}
+                  key={team.name}
+                  onClick={() => updateEventConfigData(event.id, { 
+                    selectedTeam: team, 
+                    selectedPlayer: null,
+                    selectedAssistPlayer: null
+                  })}
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    configData.selectedTeam?.name === team.name
+                      ? 'bg-gray-100 text-black border border-black '
+                      : team.shortName === 'Team A' 
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  {team.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Action Selection for Shot events */}
+        {(event.eventType === 'Shot' && configData.selectedTeam) && (
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">Result:</div>
+            <div className="grid grid-cols-2 gap-1">
+              {/* Add "None" option */}
+              <button
+                onClick={() => updateEventConfigData(event.id, { selectedAction: null })}
+                className={`px-2 py-2 text-xs rounded transition-colors ${
+                  configData.selectedAction === null
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                None
+              </button>
+              {['Goal', 'Save', 'Wide', 'Blocked'].map(action => (
+                <button
+                  key={action}
+                  onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
+                  className={`px-2 py-2 text-xs rounded transition-colors ${
+                    configData.selectedAction === action
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Action Selection for Foul events */}
+        {(event.eventType === 'Foul' && configData.selectedTeam) && (
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">Card Type:</div>
+            <div className="grid grid-cols-2 gap-1">
+              {/* Add "None" option */}
+              <button
+                onClick={() => updateEventConfigData(event.id, { selectedAction: null })}
+                className={`px-2 py-2 text-xs rounded transition-colors ${
+                  configData.selectedAction === null
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                None
+              </button>
+              {['Yellow Card', 'Red Card'].map(action => (
+                <button
+                  key={action}
+                  onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
+                  className={`px-2 py-2 text-xs rounded transition-colors ${
+                    configData.selectedAction === action
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Action Selection for Set Play events */}
+        {(event.eventType === 'Set Play' && configData.selectedTeam) && (
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">Select Play Type:</div>
+            <div className="grid grid-cols-2 gap-1">
+              {/* Add "None" option */}
+              <button
+                onClick={() => updateEventConfigData(event.id, { selectedAction: null })}
+                className={`px-2 py-2 text-xs rounded transition-colors ${
+                  configData.selectedAction === null
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                None
+              </button>
+              {eventTypeConfig.actions.map(action => (
+                <button
+                  key={action}
+                  onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
+                  className={`px-2 py-2 text-xs rounded transition-colors ${
+                    configData.selectedAction === action
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Action Selection for other events that have actions */}
+        {(configData.selectedTeam && event.eventType !== 'Shot' && event.eventType !== 'Period' && event.eventType !== 'Foul' && event.eventType !== 'Set Play' && eventTypeConfig.actions.length > 0) && (
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">Select Action:</div>
+            <div className="grid grid-cols-2 gap-1">
+              {eventTypeConfig.actions.map(action => (
+                <button
+                  key={action}
+                  onClick={() => updateEventConfigData(event.id, { selectedAction: action })}
+                  className={`px-2 py-2 text-xs rounded transition-colors ${
+                    configData.selectedAction === action
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Player Selection for events that require player */}
+        {(eventTypeConfig.requiresPlayer || event.eventType === 'Shot' || event.eventType === 'Foul') && configData.selectedTeam && (
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">
+              Select Player {event.eventType === 'Shot' || event.eventType === 'Foul' ? '(Optional)' : ''}:
+            </div>
+            <div className="grid grid-cols-3 gap-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded">
+              {/* Add "None" option for Shot and Foul events */}
+              {(event.eventType === 'Shot' || event.eventType === 'Foul') && (
+                <button
+                  onClick={() => updateEventConfigData(event.id, { selectedPlayer: null })}
                   className={`p-2 rounded text-xs font-medium transition-colors ${
-                    !configData.selectedAssistPlayer
+                    !configData.selectedPlayer
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
                   None
                 </button>
-                {configData.selectedTeam.players
-                  .filter(player => player.id !== configData.selectedPlayer?.id) // Exclude the main player
-                  .map(player => (
-                  <button
-                    key={`assist-${player.id}`}
-                    onClick={() => updateEventConfigData(event.id, { selectedAssistPlayer: player })}
-                    className={`p-2 rounded text-xs font-medium transition-colors ${
-                      configData.selectedAssistPlayer?.id === player.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    #{player.jerseyNo}
-                  </button>
-                ))}
-              </div>
-              {configData.selectedAssistPlayer && (
-                <div className="text-xs mt-2 bg-blue-50 rounded px-2 py-1">
-                  Assist: #{configData.selectedAssistPlayer.jerseyNo} - {configData.selectedAssistPlayer.name}
-                </div>
               )}
+              {configData.selectedTeam.players.map(player => (
+                <button
+                  key={player.id}
+                  onClick={() => updateEventConfigData(event.id, { selectedPlayer: player })}
+                  className={`p-2 rounded text-xs font-medium transition-colors ${
+                    configData.selectedPlayer?.id === player.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  #{player.jerseyNo}
+                </button>
+              ))}
             </div>
-          )}
-          
-          {/* Save and Cancel buttons */}
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={() => saveConfiguredEvent(event.id)}
-              disabled={
-                (eventTypeConfig.requiresTeam && !configData.selectedTeam && event.eventType !== 'Shot' && event.eventType !== 'Foul') ||
-                (eventTypeConfig.requiresPlayer && !configData.selectedPlayer && event.eventType !== 'Shot' && event.eventType !== 'Foul')
-              }
-              className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {editingMarkerId === event.id ? 'Update Event' : 'Save Event'}
-            </button>
-            <button
-              onClick={() => cancelEventConfig(event.id)}
-              className="flex-1 px-4 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
+            {configData.selectedPlayer && (
+              <div className="text-xs mt-2 bg-blue-50 rounded px-2 py-1">
+                Selected: #{configData.selectedPlayer.jerseyNo} - {configData.selectedPlayer.name}
+              </div>
+            )}
           </div>
+        )}
+        
+        {/* Assist Player Selection for Shot events */}
+        {(event.eventType === 'Shot' && configData.selectedTeam && configData.selectedPlayer) && (
+          <div className="mb-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">
+              Select Assist Player (Optional):
+            </div>
+            <div className="grid grid-cols-3 gap-1 max-h-40 overflow-y-auto bg-gray-50 p-2 rounded">
+              {/* Add "None" option */}
+              <button
+                onClick={() => updateEventConfigData(event.id, { selectedAssistPlayer: null })}
+                className={`p-2 rounded text-xs font-medium transition-colors ${
+                  !configData.selectedAssistPlayer
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                None
+              </button>
+              {configData.selectedTeam.players
+                .filter(player => player.id !== configData.selectedPlayer?.id) // Exclude the main player
+                .map(player => (
+                <button
+                  key={`assist-${player.id}`}
+                  onClick={() => updateEventConfigData(event.id, { selectedAssistPlayer: player })}
+                  className={`p-2 rounded text-xs font-medium transition-colors ${
+                    configData.selectedAssistPlayer?.id === player.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  #{player.jerseyNo}
+                </button>
+              ))}
+            </div>
+            {configData.selectedAssistPlayer && (
+              <div className="text-xs mt-2 bg-blue-50 rounded px-2 py-1">
+                Assist: #{configData.selectedAssistPlayer.jerseyNo} - {configData.selectedAssistPlayer.name}
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Save and Cancel buttons */}
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => saveConfiguredEvent(event.id)}
+            disabled={!teamSelectionSatisfied || 
+                     (eventTypeConfig.requiresPlayer && !configData.selectedPlayer && event.eventType !== 'Shot' && event.eventType !== 'Foul')}
+            className="flex-1 px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {editingMarkerId === event.id ? 'Update Event' : 'Save Event'}
+          </button>
+          <button
+            onClick={() => cancelEventConfig(event.id)}
+            className="flex-1 px-4 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+          >
+            Cancel
+          </button>
         </div>
+        
+        {/* Show requirement message if team selection is needed but not satisfied */}
+        {requiresTeamSelection && !configData.selectedTeam && (
+          <div className="text-xs text-red-500 mt-2">
+            Team selection is required for this event type
+          </div>
+        )}
       </div>
-    );
-  });
+    </div>
+  );
+});
   
   // Handle fullscreen change event
   useEffect(() => {
@@ -2065,7 +2122,7 @@ const saveAllAnalysis = useCallback(async () => {
             className="overflow-y-auto p-4"
           >
             {/* Current Events Dropdown */}
-            {currentEvents.length > 0 && (
+            {/* {currentEvents.length > 0 && (
               <div className="bg-blue-50 border-t-2 border-b-2 border-blue-200 p-4 mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-sm font-semibold text-blue-800">
@@ -2112,7 +2169,7 @@ const saveAllAnalysis = useCallback(async () => {
                   </div>
                 )}
               </div>
-            )}
+            )} */}
             
             {/* Open Event Configuration Panels */}
             {openEventConfigs.length > 0 ? (

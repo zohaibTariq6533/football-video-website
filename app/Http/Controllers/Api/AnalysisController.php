@@ -131,132 +131,244 @@ class AnalysisController extends Controller
         ]);
     }
 
-    public function stats($videoId)
-    {
-        $video = Video::with(['events.team', 'events.player', 'events.assistPlayer'])
-            ->findOrFail($videoId);
+// public function stats($videoId)
+// {
+//     $video = Video::with(['events.team', 'events.player', 'events.assistPlayer', 'teams'])
+//         ->findOrFail($videoId);
 
-        // Prepare team statistics
-        $teamsStats = [];
-        $playersStats = [];
 
-        foreach ($video->events as $event) {
-            // Team stats
-            if ($event->team) {
-                $teamName = $event->team->name;
-                if (!isset($teamsStats[$teamName])) {
-                    $teamsStats[$teamName] = [
-                        'possession' => 0,
-                        'shots' => 0,
-                        'goals' => 0,
-                        'fouls' => 0,
-                        'corners' => 0,
-                    ];
-                }
+//     // Prepare team statistics
+//     $teamsStats = [];
+//     $playersStats = [];
+    
+//     // Get team names
+//     $team1Name = $video->teams[0]->name ?? 'Team 1';
+//     $team2Name = $video->teams[1]->name ?? 'Team 2';
 
-                // Update based on event type
-                switch ($event->event_type) {
-                    case 'Possession':
-                        // Calculate possession time (if we have end_time)
-                        if ($event->end_time) {
-                            $duration = $event->end_time - $event->time;
-                            $teamsStats[$teamName]['possession'] += $duration;
-                        }
-                        break;
-                    case 'Shot':
-                        $teamsStats[$teamName]['shots']++;
-                        if ($event->action === 'Goal') {
-                            $teamsStats[$teamName]['goals']++;
-                        }
-                        break;
-                    case 'Foul':
-                        $teamsStats[$teamName]['fouls']++;
-                        break;
-                    case 'Set Play':
-                        if ($event->action === 'Corner Kick') {
-                            $teamsStats[$teamName]['corners']++;
-                        }
-                        break;
-                }
-            }
+//     foreach ($video->events as $event) {
+//         // Team stats
+//         if ($event->team) {
+//             $teamName = $event->team->name;
+//             if (!isset($teamsStats[$teamName])) {
+//                 $teamsStats[$teamName] = [
+//                     'possession' => 0,
+//                     'shots' => 0,
+//                     'goals' => 0,
+//                     'fouls' => 0,
+//                     'corners' => 0,
+//                     'attack3rd' => 0,  // Will store count, not percentage
+//                     'periods' => 0,    // Will store count
+//                     'offsides' => 0,    // Added offside count
+//                 ];
+//             }
 
-            // Player stats
-            if ($event->player) {
-                $playerId = $event->player->id;
-                if (!isset($playersStats[$playerId])) {
-                    $playersStats[$playerId] = [
-                        'jerseyNo' => $event->player->jersey_number,
-                        'name' => $event->player->name,
-                        'goals' => 0,
-                        'assists' => 0,
-                        'fouls' => 0,
-                    ];
-                }
+//             // Update based on event type
+//             switch ($event->event_type) {
+//                 case 'Possession':
+//                     // Calculate possession time (if we have end_time)
+//                     if ($event->end_time) {
+//                         $duration = $event->end_time - $event->time;
+//                         $teamsStats[$teamName]['possession'] += $duration;
+//                     }
+//                     break;
+//                 case 'Shot':
+//                     $teamsStats[$teamName]['shots']++;
+//                     if ($event->action === 'Goal') {
+//                         $teamsStats[$teamName]['goals']++;
+//                     }
+//                     break;
+//                 case 'Foul':
+//                     $teamsStats[$teamName]['fouls']++;
+//                     break;
+//                 case 'Set Play':
+//                     if ($event->action === 'Corner Kick') {
+//                         $teamsStats[$teamName]['corners']++;
+//                     }
+//                     break;
+//                 case 'Attack 3rd':
+//                     // Count attack 3rd entries instead of calculating time
+//                     $teamsStats[$teamName]['attack3rd']++;
+//                     break;
+//                 case 'Period':
+//                     // Count periods
+//                     $teamsStats[$teamName]['periods']++;
+//                     break;
+//                 case 'Offside':  // Added offside handling
+//                     $teamsStats[$teamName]['offsides']++;
+//                     break;
+//             }
+//         }
 
-                switch ($event->event_type) {
-                    case 'Shot':
-                        if ($event->action === 'Goal') {
-                            $playersStats[$playerId]['goals']++;
-                        }
-                        break;
-                    case 'Foul':
-                        $playersStats[$playerId]['fouls']++;
-                        break;
-                }
+//         // Player stats (unchanged)
+//         if ($event->player) {
+//             $playerId = $event->player->id;
+//             if (!isset($playersStats[$playerId])) {
+//                 $playersStats[$playerId] = [
+//                     'jerseyNo' => $event->player->jersey_number,
+//                     'name' => $event->player->name,
+//                     'goals' => 0,
+//                     'assists' => 0,
+//                     'fouls' => 0,
+//                 ];
+//             }
 
-                // Assists
-                if ($event->assistPlayer) {
-                    $assistPlayerId = $event->assistPlayer->id;
-                    if (!isset($playersStats[$assistPlayerId])) {
-                        $playersStats[$assistPlayerId] = [
-                            'jerseyNo' => $event->assistPlayer->jersey_number,
-                            'name' => $event->assistPlayer->name,
-                            'goals' => 0,
-                            'assists' => 0,
-                            'fouls' => 0,
-                        ];
-                    }
-                    $playersStats[$assistPlayerId]['assists']++;
-                }
-            }
-        }
+//             switch ($event->event_type) {
+//                 case 'Shot':
+//                     if ($event->action === 'Goal') {
+//                         $playersStats[$playerId]['goals']++;
+//                     }
+//                     break;
+//                 case 'Foul':
+//                     $playersStats[$playerId]['fouls']++;
+//                     break;
+//             }
 
-        // Calculate total possession time to convert to percentage
-        $totalPossession = array_sum(array_column($teamsStats, 'possession'));
-        if ($totalPossession > 0) {
-            foreach ($teamsStats as &$teamStats) {
-                $teamStats['possession'] = round(($teamStats['possession'] / $totalPossession) * 100);
-            }
-        }
+//             // Assists
+//             if ($event->assistPlayer) {
+//                 $assistPlayerId = $event->assistPlayer->id;
+//                 if (!isset($playersStats[$assistPlayerId])) {
+//                     $playersStats[$assistPlayerId] = [
+//                         'jerseyNo' => $event->assistPlayer->jersey_number,
+//                         'name' => $event->assistPlayer->name,
+//                         'goals' => 0,
+//                         'assists' => 0,
+//                         'fouls' => 0,
+//                     ];
+//                 }
+//                 $playersStats[$assistPlayerId]['assists']++;
+//             }
+//         }
+//     }
 
-        // Prepare timeline
-        $timeline = [];
-        foreach ($video->events as $event) {
-            $timeline[] = [
-                'eventType' => $event->event_type,
-                'time' => $event->time,
-                'endTime' => $event->end_time,
-                'team' => $event->team ? $event->team->name : null,
-                'playerName' => $event->player ? $event->player->name : null,
-                'jerseyNo' => $event->player ? $event->player->jersey_number : null,
-                'action' => $event->action,
-                'assistPlayerName' => $event->assistPlayer ? $event->assistPlayer->name : null,
-                'assistJerseyNo' => $event->assistPlayer ? $event->assistPlayer->jersey_number : null,
-                'color' => $event->color,
-            ];
-        }
+//     // Calculate total possession time to convert to percentage
+//     $totalPossession = array_sum(array_column($teamsStats, 'possession'));
+//     if ($totalPossession > 0) {
+//         foreach ($teamsStats as &$teamStats) {
+//             $teamStats['possession'] = round(($teamStats['possession'] / $totalPossession) * 100);
+//         }
+//     }
 
-        // Sort timeline by time
-        usort($timeline, function ($a, $b) {
-            return $a['time'] - $b['time'];
-        });
+//     // Prepare timeline (unchanged)
+//     $timeline = [];
+//     foreach ($video->events as $event) {
+//         $timeline[] = [
+//             'eventType' => $event->event_type,
+//             'time' => $event->time,
+//             'endTime' => $event->end_time,
+//             'team' => $event->team ? $event->team->name : null,
+//             'playerName' => $event->player ? $event->player->name : null,
+//             'jerseyNo' => $event->player ? $event->player->jersey_number : null,
+//             'action' => $event->action,
+//             'assistPlayerName' => $event->assistPlayer ? $event->assistPlayer->name : null,
+//             'assistJerseyNo' => $event->assistPlayer ? $event->assistPlayer->jersey_number : null,
+//             'color' => $event->color,
+//         ];
+//     }
 
-        return response()->json([
-            'teams' => $teamsStats,
-            'players' => array_values($playersStats),
-            'timeline' => $timeline,
-        ]);
-    }
+//     // Sort timeline by time
+//     usort($timeline, function ($a, $b) {
+//         return $a['time'] - $b['time'];
+//     });
+
+//     // Prepare response in the format expected by the frontend
+//     $response = [
+//         'teams' => [
+//             $team1Name => $teamsStats[$team1Name] ?? [
+//                 'possession' => 0,
+//                 'shots' => 0,
+//                 'goals' => 0,
+//                 'fouls' => 0,
+//                 'corners' => 0,
+//                 'attack3rd' => 0,
+//                 'periods' => 0,
+//                 'offsides' => 0,
+//             ],
+//             $team2Name => $teamsStats[$team2Name] ?? [
+//                 'possession' => 0,
+//                 'shots' => 0,
+//                 'goals' => 0,
+//                 'fouls' => 0,
+//                 'corners' => 0,
+//                 'attack3rd' => 0,
+//                 'periods' => 0,
+//                 'offsides' => 0,
+//             ],
+//         ],
+//         'players' => array_values($playersStats),
+//         'timeline' => $timeline,
+//     ];
+
+//     // Format for frontend table structure
+//     $stats = [
+//         'possession' => [
+//             'team1' => $response['teams'][$team1Name]['possession'],
+//             'team2' => $response['teams'][$team2Name]['possession'],
+//         ],
+//         'attack3rd' => [
+//             'team1' => $response['teams'][$team1Name]['attack3rd'],
+//             'team2' => $response['teams'][$team2Name]['attack3rd'],
+//         ],
+//         'periods' => [
+//             'team1' => $response['teams'][$team1Name]['periods'],
+//             'team2' => $response['teams'][$team2Name]['periods'],
+//         ],
+//         'events' => [
+//             'Shot' => [
+//                 'actions' => [
+//                     'Goal' => [
+//                         'team1' => $response['teams'][$team1Name]['goals'],
+//                         'team2' => $response['teams'][$team2Name]['goals'],
+//                         'total' => $response['teams'][$team1Name]['goals'] + $response['teams'][$team2Name]['goals'],
+//                     ],
+//                     'On Target' => [
+//                         'team1' => 0, // Need to calculate if you track this
+//                         'team2' => 0,
+//                         'total' => 0,
+//                     ],
+//                     'Off Target' => [
+//                         'team1' => 0, // Need to calculate if you track this
+//                         'team2' => 0,
+//                         'total' => 0,
+//                     ],
+//                 ],
+//                 'team1' => $response['teams'][$team1Name]['shots'],
+//                 'team2' => $response['teams'][$team2Name]['shots'],
+//                 'total' => $response['teams'][$team1Name]['shots'] + $response['teams'][$team2Name]['shots'],
+//             ],
+//             'Foul' => [
+//                 'actions' => [], // Add specific foul actions if tracked
+//                 'team1' => $response['teams'][$team1Name]['fouls'],
+//                 'team2' => $response['teams'][$team2Name]['fouls'],
+//                 'total' => $response['teams'][$team1Name]['fouls'] + $response['teams'][$team2Name]['fouls'],
+//             ],
+//             'Set Play' => [
+//                 'actions' => [
+//                     'Corner Kick' => [
+//                         'team1' => $response['teams'][$team1Name]['corners'],
+//                         'team2' => $response['teams'][$team2Name]['corners'],
+//                         'total' => $response['teams'][$team1Name]['corners'] + $response['teams'][$team2Name]['corners'],
+//                     ],
+//                 ],
+//                 'team1' => $response['teams'][$team1Name]['corners'],
+//                 'team2' => $response['teams'][$team2Name]['corners'],
+//                 'total' => $response['teams'][$team1Name]['corners'] + $response['teams'][$team2Name]['corners'],
+//             ],
+//             'Offside' => [
+//                 'actions' => [], // Add specific offside actions if tracked
+//                 'team1' => $response['teams'][$team1Name]['offsides'],
+//                 'team2' => $response['teams'][$team2Name]['offsides'],
+//                 'total' => $response['teams'][$team1Name]['offsides'] + $response['teams'][$team2Name]['offsides'],
+//             ],
+//         ],
+//     ];
+
+//     return response()->json([
+//         'teams' => [$video->teams[0], $video->teams[1]],
+//         'stats' => $stats,
+//         'players' => array_values($playersStats),
+//         'timeline' => $timeline,
+//     ]);
+// }
 
     public function export($videoId)
     {
@@ -297,116 +409,157 @@ class AnalysisController extends Controller
     }
 
 
-    public function showStats($videoId)
-    {
-        $video = Video::findOrFail($videoId);
-        $teams = Team::where('video_id', $videoId)->get();
-        
-        // Get all events for this video
-        $events = AnalysisEvent::with(['team', 'player', 'assistPlayer'])
-            ->where('video_id', $videoId)
-            ->get();
-        
-        // Calculate statistics
-        $stats = $this->calculateStats($events, $teams);
-        
-        return view('football.stats', compact('video', 'teams', 'stats', 'videoId'));
-    }
+public function showStats($videoId)
+{
+    $video = Video::findOrFail($videoId);
+    $teams = Team::where('video_id', $videoId)->get();
+    
+    // Get all events for this video
+    $events = AnalysisEvent::with(['team', 'player', 'assistPlayer'])
+        ->where('video_id', $videoId)
+        ->get();
 
-    private function calculateStats($events, $teams)
-    {
-        $stats = [
-            'events' => [],
-            'possession' => [
-                'team1' => 0,
-                'team2' => 0,
-            ]
+    
+    // Calculate statistics
+    $stats = $this->calculateStats($events, $teams);
+    
+    return view('football.stats', compact('video', 'teams', 'stats', 'videoId'));
+}
+
+private function calculateStats($events, $teams)
+{
+    $stats = [
+        'events' => [],
+        'possession' => [
+            'team1' => 0,
+            'team2' => 0,
+        ],
+        'attack3rd' => [
+            'team1' => 0,
+            'team2' => 0,
+        ],
+        'period' => [
+            'team1' => 0,
+            'team2' => 0,
+        ]
+    ];
+    
+    // Initialize event types
+    $eventTypes = [
+        'Period' => ['First Half', 'Second Half', 'Extra Time', 'Penalty Kicks', 'Time-out'],
+        'Shot' => ['Goal', 'Save', 'Wide', 'Blocked'],
+        'Foul' => ['Yellow Card', 'Red Card'],
+        'Set Play' => ['Kick off', 'Free Kick', 'Throw In', 'Penalty Kick', 'Goal Kick', 'Corner Kick'],
+        'Offside' => ['Offside'],
+        'Aerial Duel' => ['Aerial Duel'],
+        'Attack 3rd' => ['Attack 3rd'],
+    ];
+    
+    // Initialize stats array
+    foreach ($eventTypes as $eventType => $actions) {
+        $stats['events'][$eventType] = [
+            'actions' => [],
+            'team1' => 0,
+            'team2' => 0,
+            'total' => 0
         ];
         
-        // Initialize event types
-        $eventTypes = [
-            'Shot' => ['Goal', 'Save', 'Wide', 'Blocked'],
-            'Foul' => ['Yellow Card', 'Red Card'],
-            'Set Play' => ['Kick off', 'Free Kick', 'Throw In', 'Penalty Kick', 'Goal Kick', 'Corner Kick'],
-            'Transition' => ['Transition'],
-            'Offside' => ['Offside'],
-            'Aerial Duel' => ['Aerial Duel'],
-        ];
-        
-        // Initialize stats array
-        foreach ($eventTypes as $eventType => $actions) {
-            $stats['events'][$eventType] = [
-                'actions' => [],
+        foreach ($actions as $action) {
+            $stats['events'][$eventType]['actions'][$action] = [
                 'team1' => 0,
                 'team2' => 0,
                 'total' => 0
             ];
-            
-            foreach ($actions as $action) {
-                $stats['events'][$eventType]['actions'][$action] = [
-                    'team1' => 0,
-                    'team2' => 0,
-                    'total' => 0
-                ];
-            }
         }
-        
-        // Calculate possession
-        $totalPossessionTime = 0;
-        $team1Possession = 0;
-        $team2Possession = 0;
-        
-        foreach ($events as $event) {
-            // Handle possession events
-            if ($event->event_type === 'Possession' && $event->end_time) {
-                $duration = $event->end_time - $event->time;
-                $totalPossessionTime += $duration;
-                
-                if ($event->team_id === $teams[0]->id) {
-                    $team1Possession += $duration;
-                } elseif ($event->team_id === $teams[1]->id) {
-                    $team2Possession += $duration;
-                }
-            }
-            
-            // Skip if event type is not in our list
-            if (!isset($stats['events'][$event->event_type])) {
-                continue;
-            }
-            
-            // Determine team index
-            $teamIndex = null;
-            if ($event->team_id === $teams[0]->id) {
-                $teamIndex = 'team1';
-            } elseif ($event->team_id === $teams[1]->id) {
-                $teamIndex = 'team2';
-            }
-            
-            // Get action name or use event type as default
-            $action = $event->action ?? $event->event_type;
-            
-            // Skip if action is not in our list for this event type
-            if (!isset($stats['events'][$event->event_type]['actions'][$action])) {
-                continue;
-            }
-            
-            // Increment counts
-            if ($teamIndex) {
-                $stats['events'][$event->event_type]['actions'][$action][$teamIndex]++;
-                $stats['events'][$event->event_type]['actions'][$action]['total']++;
-                $stats['events'][$event->event_type][$teamIndex]++;
-                $stats['events'][$event->event_type]['total']++;
-            }
-        }
-        
-        // Calculate possession percentages
-        if ($totalPossessionTime > 0) {
-            $stats['possession']['team1'] = round(($team1Possession / $totalPossessionTime) * 100);
-            $stats['possession']['team2'] = round(($team2Possession / $totalPossessionTime) * 100);
-        }
-        
-        return $stats;
     }
+    
+    // Calculate possession
+    $totalPossessionTime = 0;
+    $team1Possession = 0;
+    $team2Possession = 0;
+    
+    // Calculate attack 3rd entries
+    $team1Attack3rd = 0;
+    $team2Attack3rd = 0;
+    
+    // Calculate periods
+    $totalPeriods = 0;
+    
+    foreach ($events as $event) {
+        // Handle possession events
+        if ($event->event_type === 'Possession' && $event->end_time) {
+            $duration = $event->end_time - $event->time;
+            $totalPossessionTime += $duration;
+            
+            if ($event->team_id === $teams[0]->id) {
+                $team1Possession += $duration;
+            } elseif ($event->team_id === $teams[1]->id) {
+                $team2Possession += $duration;
+            }
+        }
+        
+        // Handle Attack 3rd events
+        if ($event->event_type === 'Attack 3rd') {
+            if ($event->team_id === $teams[0]->id) {
+                $team1Attack3rd++;
+            } elseif ($event->team_id === $teams[1]->id) {
+                $team2Attack3rd++;
+            }
+        }
+        
+        // Handle Period events (count regardless of team)
+        if ($event->event_type === 'Period') {
+            $totalPeriods++;
+        }
+        
+        // Skip if event type is not in our list
+        if (!isset($stats['events'][$event->event_type])) {
+            continue;
+        }
+        
+        // Determine team index (for team-specific events)
+        $teamIndex = null;
+        if ($event->team_id === $teams[0]->id) {
+            $teamIndex = 'team1';
+        } elseif ($event->team_id === $teams[1]->id) {
+            $teamIndex = 'team2';
+        }
+        
+        // Get action name or use event type as default
+        $action = $event->action ?? $event->event_type;
+        
+        // Skip if action is not in our list for this event type
+        if (!isset($stats['events'][$event->event_type]['actions'][$action])) {
+            continue;
+        }
+        
+        // Increment counts
+        if ($teamIndex) {
+            $stats['events'][$event->event_type]['actions'][$action][$teamIndex]++;
+            $stats['events'][$event->event_type][$teamIndex]++;
+        }
+        
+        // Always increment total counts (for both team-specific and match-wide events)
+        $stats['events'][$event->event_type]['actions'][$action]['total']++;
+        $stats['events'][$event->event_type]['total']++;
+    }
+    
+    // Calculate possession percentages
+    if ($totalPossessionTime > 0) {
+        $stats['possession']['team1'] = round(($team1Possession / $totalPossessionTime) * 100);
+        $stats['possession']['team2'] = round(($team2Possession / $totalPossessionTime) * 100);
+    }
+    
+    // Set attack 3rd counts
+    $stats['attack3rd']['team1'] = $team1Attack3rd;
+    $stats['attack3rd']['team2'] = $team2Attack3rd;
+    
+    // Set period counts (distribute evenly between teams for display purposes)
+    $stats['period']['team1'] = ceil($totalPeriods / 2);
+    $stats['period']['team2'] = floor($totalPeriods / 2);
+    
+    return $stats;
+}
 
     public function showFilter($videoId)
     {

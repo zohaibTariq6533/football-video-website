@@ -65,48 +65,102 @@
                         </td>
                     </tr>
 
+                    <!-- Period Row -->
+                    <tr class="bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            Period
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                            {{ $stats['period']['team1'] ?? 0 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                            {{ $stats['period']['team2'] ?? 0 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                            {{ ($stats['period']['team1'] ?? 0) + ($stats['period']['team2'] ?? 0) }}
+                        </td>
+                    </tr>
+
                     <!-- Event Rows -->
                     @foreach($stats['events'] as $eventType => $eventData)
-                        <!-- Event Type Header Row -->
-                        <tr class="bg-blue-50">
-                            <td colspan="4" class="px-6 py-3 text-sm font-bold text-blue-800">
-                                {{ $eventType }}
-                            </td>
-                        </tr>
-
-                        <!-- Event Actions Rows -->
-                        @foreach($eventData['actions'] as $action => $actionData)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 pl-10">
-                                    {{ $action }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                                    {{ $actionData['team1'] ?? 0 }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                                    {{ $actionData['team2'] ?? 0 }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                                    {{ $actionData['total'] ?? 0 }}
+                        <!-- Skip Transition events -->
+                        @if($eventType !== 'Transition')
+                            <!-- Event Type Header Row -->
+                            <tr class="bg-blue-50">
+                                <td colspan="4" class="px-6 py-3 text-sm font-bold text-blue-800">
+                                    {{ $eventType }}
                                 </td>
                             </tr>
-                        @endforeach
 
-                        <!-- Event Total Row -->
-                        <tr class="bg-gray-100">
-                            <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 pl-6">
-                                {{ $eventType }} Total
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
-                                {{ $eventData['team1'] ?? 0 }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
-                                {{ $eventData['team2'] ?? 0 }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
-                                {{ $eventData['total'] ?? 0 }}
-                            </td>
-                        </tr>
+                            <!-- Event Actions Rows -->
+                            @if($eventType === 'Shot')
+                                <!-- On Target Row (Goal + Save) -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 pl-10">
+                                        On Target
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                        {{ ($eventData['actions']['Goal']['team1'] ?? 0) + ($eventData['actions']['Save']['team1'] ?? 0) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                        {{ ($eventData['actions']['Goal']['team2'] ?? 0) + ($eventData['actions']['Save']['team2'] ?? 0) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                        {{ ($eventData['actions']['Goal']['total'] ?? 0) + ($eventData['actions']['Save']['total'] ?? 0) }}
+                                    </td>
+                                </tr>
+                                
+                                <!-- Off Target Row (Wide + Blocked) -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 pl-10">
+                                        Off Target
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                        {{ ($eventData['actions']['Wide']['team1'] ?? 0) + ($eventData['actions']['Blocked']['team1'] ?? 0) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                        {{ ($eventData['actions']['Wide']['team2'] ?? 0) + ($eventData['actions']['Blocked']['team2'] ?? 0) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                        {{ ($eventData['actions']['Wide']['total'] ?? 0) + ($eventData['actions']['Blocked']['total'] ?? 0) }}
+                                    </td>
+                                </tr>
+                            @else
+                                <!-- For other event types, show all actions -->
+                                @foreach($eventData['actions'] as $action => $actionData)
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 pl-10">
+                                            {{ $action }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                            {{ $actionData['team1'] ?? 0 }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                            {{ $actionData['team2'] ?? 0 }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                            {{ $actionData['total'] ?? 0 }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            @endif
+
+                            <!-- Event Total Row -->
+                            <tr class="bg-gray-100">
+                                <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 pl-6">
+                                    {{ $eventType }} Total
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
+                                    {{ $eventData['team1'] ?? 0 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
+                                    {{ $eventData['team2'] ?? 0 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
+                                    {{ $eventData['total'] ?? 0 }}
+                                </td>
+                            </tr>
+                        @endif
                     @endforeach
                 </tbody>
             </table>
