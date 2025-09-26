@@ -58,6 +58,9 @@ const FootballMatchFilter = ({
         left: 0,
     });
 
+    // Add state to track the currently playing event
+    const [currentlyPlayingEventId, setCurrentlyPlayingEventId] = useState(null);
+
     // Refs
     const videoRef = useRef(null);
     const controlsTimeoutRef = useRef(null);
@@ -652,28 +655,32 @@ const FootballMatchFilter = ({
 
     // Play event from the exact start time
     const playEvent = useCallback(
-        (startTime) => {
-            if (videoRef.current && videoUrl) {
-                videoRef.current.currentTime = startTime;
+    (startTime, eventId) => {
+        if (videoRef.current && videoUrl) {
+            videoRef.current.currentTime = startTime;
 
-                videoRef.current
-                    .play()
-                    .then(() => {
-                        setIsPlaying(true);
-                        setCurrentTime(startTime);
-                        currentTimeRef.current = startTime;
-                        setVideoProgress((startTime / duration) * 100);
-                    })
-                    .catch((error) => {
-                        console.error("Error playing video:", error);
-                    });
-            } else {
-                seekToTime(startTime);
-                setIsPlaying(true);
-            }
-        },
-        [videoUrl, duration, seekToTime]
-    );
+            videoRef.current
+                .play()
+                .then(() => {
+                    setIsPlaying(true);
+                    setCurrentTime(startTime);
+                    currentTimeRef.current = startTime;
+                    setVideoProgress((startTime / duration) * 100);
+                    // Set the currently playing event ID
+                    setCurrentlyPlayingEventId(eventId);
+                })
+                .catch((error) => {
+                    console.error("Error playing video:", error);
+                });
+        } else {
+            seekToTime(startTime);
+            setIsPlaying(true);
+            // Set the currently playing event ID
+            setCurrentlyPlayingEventId(eventId);
+        }
+    },
+    [videoUrl, duration, seekToTime]
+);
 
     // Cleanup
     useEffect(() => {
@@ -1248,16 +1255,15 @@ const FootballMatchFilter = ({
                                             </div>
                                             <div className="col-span-1 flex">
                                                 <button
-                                                    onClick={() =>
-                                                        playEvent(event.time)
-                                                    }
-                                                    className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs flex items-center"
+                                                    onClick={() => playEvent(event.time, event.id)}
+                                                    className={`px-3 py-2 rounded transition-colors text-xs flex items-center ${
+                                                        currentlyPlayingEventId === event.id
+                                                            ? "bg-red-600 text-white"
+                                                            : "bg-blue-600 text-white hover:bg-blue-700"
+                                                    }`}
                                                     title="Play event from start"
                                                 >
-                                                    <Play
-                                                        size={12}
-                                                        className="mr-1"
-                                                    />
+                                                    <Play size={12} className="mr-1" />
                                                     Play
                                                 </button>
                                             </div>
