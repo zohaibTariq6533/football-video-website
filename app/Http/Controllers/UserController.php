@@ -117,7 +117,7 @@ class UserController extends Controller
         ->groupBy('users.id', 'users.user_name', 'users.email','users.created_at')
         ->take(1)->get();
 
-        $videoDetail=DB::table('videos')->where('user_id',$id)->get();
+        $videoDetail=DB::table('videos')->where('user_id',$id)->orderBy('created_at','desc')->get();
         return view('users.userDetail',['user'=>$user,'video'=>$videoDetail]);
     }
 

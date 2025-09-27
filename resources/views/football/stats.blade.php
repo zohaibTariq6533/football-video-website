@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <title>Football Match Filter</title>
+    <title>Football Match Statistics</title>
     
     <!-- Styles and Scripts -->
     @viteReactRefresh
@@ -13,8 +13,8 @@
 </head>
 <body class="bg-gray-100 antialiased">
 <div class="container mx-auto px-4 py-8">
-    <div class="mb-6 flex justify-between items-center">
-        <div>
+    <div class="mb-6 ">
+        <div class="flex justify-between items-center flex-col">
             <h1 class="text-3xl font-bold text-gray-800">Match Statistics</h1>
             <p class="text-gray-600 mt-2">Video: {{ $video->title ?? 'Match Video' }}</p>
         </div>
@@ -34,44 +34,47 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
-                            Event / Action
-                        </th>
+                        
                         <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-red-600 uppercase tracking-wider w-1/5">
                             {{ $teams[0]->name }}
+                        </th>
+                        <th scope="col" class="  px-6 py-3 text-left text-lg font-bold text-gray-500 uppercase tracking-wider w-2/5">
+                            <p class="text-center">Event / Action</p>
                         </th>
                         <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-green-600 uppercase tracking-wider w-1/5">
                             {{ $teams[1]->name }}
                         </th>
-                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/5">
+                        {{-- <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/5">
                             Total
-                        </th>
+                        </th> --}}
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <!-- Possession Row -->
-                    <tr class="bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            Possession
-                        </td>
+                    <tr class="bg-blue-50">
+                        
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                             {{ $stats['possession']['team1'] ?? 0 }}%
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-lg  text-blue-800 font-bold">
+                           <p class="text-center">Possession</p> 
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                             {{ $stats['possession']['team2'] ?? 0 }}%
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                        {{-- <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                             100%
-                        </td>
+                        </td> --}}
                     </tr>
 
                     <!-- Period Row -->
-                    <tr class="bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            Period
-                        </td>
+                    {{-- <tr class="bg-gray-50">
+                        
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                             {{ $stats['period']['team1'] ?? 0 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <p class="text-center">Period</p> 
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                             {{ $stats['period']['team2'] ?? 0 }}
@@ -79,7 +82,7 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                             {{ ($stats['period']['team1'] ?? 0) + ($stats['period']['team2'] ?? 0) }}
                         </td>
-                    </tr>
+                    </tr> --}}
 
                     <!-- Event Rows -->
                     @foreach($stats['events'] as $eventType => $eventData)
@@ -87,8 +90,8 @@
                         @if($eventType !== 'Transition')
                             <!-- Event Type Header Row -->
                             <tr class="bg-blue-50">
-                                <td colspan="4" class="px-6 py-3 text-sm font-bold text-blue-800">
-                                    {{ $eventType }}
+                                <td colspan="4" class="px-6 py-3 text-lg font-bold text-blue-800 ">
+                                   <p class="text-center">{{ $eventType }}</p> 
                                 </td>
                             </tr>
 
@@ -96,69 +99,73 @@
                             @if($eventType === 'Shot')
                                 <!-- On Target Row (Goal + Save) -->
                                 <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 pl-10">
-                                        On Target
-                                    </td>
+                                    
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                                         {{ ($eventData['actions']['Goal']['team1'] ?? 0) + ($eventData['actions']['Save']['team1'] ?? 0) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 ">
+                                        <p class="text-center">On Target</p> 
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                                         {{ ($eventData['actions']['Goal']['team2'] ?? 0) + ($eventData['actions']['Save']['team2'] ?? 0) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                    {{-- <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                                         {{ ($eventData['actions']['Goal']['total'] ?? 0) + ($eventData['actions']['Save']['total'] ?? 0) }}
-                                    </td>
+                                    </td> --}}
                                 </tr>
                                 
                                 <!-- Off Target Row (Wide + Blocked) -->
                                 <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 pl-10">
-                                        Off Target
-                                    </td>
+                                    
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                                         {{ ($eventData['actions']['Wide']['team1'] ?? 0) + ($eventData['actions']['Blocked']['team1'] ?? 0) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 ">
+                                         <p class="text-center">Off Target</p> 
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                                         {{ ($eventData['actions']['Wide']['team2'] ?? 0) + ($eventData['actions']['Blocked']['team2'] ?? 0) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                    {{-- <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                                         {{ ($eventData['actions']['Wide']['total'] ?? 0) + ($eventData['actions']['Blocked']['total'] ?? 0) }}
-                                    </td>
+                                    </td> --}}
                                 </tr>
                             @else
                                 <!-- For other event types, show all actions -->
                                 @foreach($eventData['actions'] as $action => $actionData)
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 pl-10">
-                                            {{ $action }}
-                                        </td>
+                                        
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                                             {{ $actionData['team1'] ?? 0 }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 ">
+                                            <p class="text-center">{{ $action }}</p> 
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                                             {{ $actionData['team2'] ?? 0 }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                                        {{-- <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                                             {{ $actionData['total'] ?? 0 }}
-                                        </td>
+                                        </td> --}}
                                     </tr>
                                 @endforeach
                             @endif
 
                             <!-- Event Total Row -->
-                            <tr class="bg-gray-100">
-                                <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 pl-6">
-                                    {{ $eventType }} Total
-                                </td>
+                            <tr>
+                                
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
                                     {{ $eventData['team1'] ?? 0 }}
+                                </td>
+                                <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 ">
+                                      <p class="text-center">{{ $eventType }} Total</p> 
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
                                     {{ $eventData['team2'] ?? 0 }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
+                                {{-- <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center text-gray-900">
                                     {{ $eventData['total'] ?? 0 }}
-                                </td>
+                                </td> --}}
                             </tr>
                         @endif
                     @endforeach
