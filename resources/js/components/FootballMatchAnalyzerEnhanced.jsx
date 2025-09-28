@@ -373,7 +373,6 @@ const FootballMatchAnalyzer = ({
     }
   }, [duration, seekToTime]);
   
-// Handle possession toggle
 const handlePossessionToggle = useCallback(() => {
     if (activePossession) {
         const endTime = currentTimeRef.current;
@@ -398,14 +397,35 @@ const handlePossessionToggle = useCallback(() => {
         setAnalysisMarkers(prev => [...prev, possessionMarker]);
         setActivePossession(null);
         setPossessionStartTime(null);
-        // Don't switch team automatically - let user select it in the config panel
+        setActivePossessionTeam(activePossession === 'A' ? 'B' : 'A');
+
     } else {
         setActivePossession(activePossessionTeam);
         setPossessionStartTime(currentTimeRef.current);
         
-        // Don't automatically create a transition marker - let user configure it
+            // Find the team object for the current active possession team
+    const team = teams.find(t => t.shortName === `Team ${activePossessionTeam}`);
+    
+    const transitionMarker = {
+      id: Date.now() + 1,
+      time: Math.max(0, currentTimeRef.current - 2),
+      endTime: Math.min(duration, currentTimeRef.current + 2),
+      eventType: 'Transition',
+      team: team ? team.name : `Team ${activePossessionTeam}`, // Use actual team name if found
+      player_id: null,
+      jerseyNo: null,
+      playerName: null,
+      action: 'Transition',
+      color: eventTypes.find(et => et.name === 'Transition').color,
+      isTimeBased: true,
+      isConfigured: true
+    };
+    
+    setAnalysisMarkers(prev => [...prev, transitionMarker]);
+
     }
-}, [activePossession, possessionStartTime, activePossessionTeam, teams, eventTypes]);
+}, [activePossession, possessionStartTime, activePossessionTeam, duration, teams, eventTypes]);
+
   
   // Handle period toggle
   const handlePeriodToggle = useCallback(() => {
@@ -1604,12 +1624,12 @@ const EventConfigPanel = memo(({ eventConfig, onClose }) => {
             )}
             <div className="text-lg font-semibold">{formatTime(displayTime)} / {formatTime(duration)}</div>
             {activePossession && (
-              <div className="text-sm mt-1">
-                <span className={`px-2 py-1 rounded text-xs ${activePossession === 'A' ? 'bg-red-600' : 'bg-green-600'}`}>
-                  Team {activePossession} Possession Active
-                </span>
-              </div>
-            )}
+    <div className="text-sm mt-1">
+        <span className={`px-2 py-1 rounded text-xs ${activePossessionTeam === 'A' ? 'bg-red-600' : 'bg-green-600'}`}>
+            Team {activePossessionTeam} Possession Active
+        </span>
+    </div>
+)}
             {activePeriod && (
               <div className="text-sm mt-1">
                 <span className="px-2 py-1 rounded text-xs bg-gray-600">
