@@ -87,7 +87,7 @@
                     <!-- Event Rows -->
                     @foreach($stats['events'] as $eventType => $eventData)
                         <!-- Skip Transition events -->
-                        @if($eventType !== 'Transition')
+                        @if($eventType !== 'Transition' || $eventType !== 'Period' )
                             <!-- Event Type Header Row -->
                             <tr class="bg-blue-50">
                                 <td colspan="4" class="px-6 py-3 text-lg font-bold text-blue-800 ">
@@ -96,7 +96,7 @@
                             </tr>
 
                             <!-- Event Actions Rows -->
-                            @if($eventType === 'Shot')
+                            @if($eventType === 'Shot' )
                                 <!-- On Target Row (Goal + Save) -->
                                 <tr>
                                     

@@ -438,15 +438,15 @@ private function calculateStats($events, $teams)
             'team1' => 0,
             'team2' => 0,
         ],
-        'period' => [
-            'team1' => 0,
-            'team2' => 0,
-        ]
+        // 'period' => [
+        //     'team1' => 0,
+        //     'team2' => 0,
+        // ]
     ];
     
     // Initialize event types
     $eventTypes = [
-        'Period' => ['First Half', 'Second Half', 'Extra Time', 'Penalty Kicks', 'Time-out'],
+        // 'Period' => ['First Half', 'Second Half', 'Extra Time', 'Penalty Kicks', 'Time-out'],
         'Shot' => ['Goal', 'Save', 'Wide', 'Blocked'],
         'Foul' => ['Yellow Card', 'Red Card'],
         'Set Play' => ['Kick off', 'Free Kick', 'Throw In', 'Penalty Kick', 'Goal Kick', 'Corner Kick'],
